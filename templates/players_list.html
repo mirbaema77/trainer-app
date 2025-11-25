@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="flex: 1; display: flex; flex-direction: column;">
+
+    <div class="content" style="padding-bottom: 0;">
+        <h1>Spieler &amp; Positionen</h1>
+    </div>
+
+    <div style="flex: 1; overflow-y: auto; padding: 0 4px;">
+
+        {% if players %}
+            {% for p in players %}
+                <div style="
+                    background: rgba(8, 18, 40, 0.95);
+                    border-radius: 12px;
+                    padding: 8px 10px;
+                    margin-bottom: 8px;
+                    box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+                    border: 1px solid rgba(60,255,154,0.25);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 8px;
+                ">
+                    <div style="font-size: 13px; display: flex; flex-direction: column; gap: 2px;">
+                        <span style="font-weight: 600;">{{ p.full_name }}</span>
+                        <span style="font-size: 11px; opacity: 0.75;">
+                            {% if p.height_cm %}{{ p.height_cm }} cm{% else %}Größe unbekannt{% endif %}
+                            {% if p.weight_kg %} • {{ p.weight_kg }} kg{% endif %}
+                        </span>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('edit_player_attributes', player_id=p.id) }}">
+                            <button type="button" class="btn" style="width: auto; padding: 6px 10px; font-size: 12px;">
+                                Attribute
+                            </button>
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="font-size: 13px; opacity: 0.85; margin-top: 12px; text-align: center;">
+                Du hast noch keine Spieler angelegt.
+            </p>
+        {% endif %}
+
+    </div>
+
+    <div style="text-align: center; margin-top: 8px;">
+        <a href="{{ url_for('new_player') }}">
+            <button class="btn" type="button">Neuen Spieler anlegen</button>
+        </a>
+    </div>
+
+    <div style="text-align: center; margin-top: 4px; margin-bottom: 4px;">
+        <a href="{{ url_for('start') }}">
+            <button class="btn" type="button">Zur Startseite</button>
+        </a>
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    /* einfache Drop-Animation nur für diese Seite */
+    @keyframes logoDrop {
+        0% {
+            transform: translateY(-120px);
+            opacity: 0;
+        }
+        100% {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .splash-logo {
+        max-width: 180px;
+        max-height: 180px;
+        animation: logoDrop 3s ease-out forwards;
+    }
+</style>
+
+<div class="content">
+    <img src="{{ url_for('static', filename='noqe_logo.png') }}"
+         alt="NOQE Logo"
+         class="splash-logo">
+</div>
+
+<script>
+    // nach 3 Sekunden automatisch zur Startseite
+    setTimeout(function() {
+        window.location.href = "{{ url_for('start') }}";
+    }, 3000);
+</script>
+
+{% endblock %}

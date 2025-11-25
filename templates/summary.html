@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="flex: 1; display: flex; flex-direction: column;">
+
+    <!-- Header oben -->
+    <div style="text-align: center; margin-bottom: 12px;">
+        <div style="font-size: 14px; color: #3cff9a; margin-bottom: 6px;">
+            ✅ Training bereit
+        </div>
+        <h1 style="margin: 0;">Deine Einheit ist fertig</h1>
+    </div>
+
+    {% if save_message %}
+        <p style="color: #3cff9a; text-align: center; margin-bottom: 8px;">
+            <strong>{{ save_message }}</strong>
+        </p>
+    {% endif %}
+
+    <!-- Trainingsname + speichern -->
+    <div style="text-align: center; margin-bottom: 14px;">
+        <form method="post">
+            <div style="margin-bottom: 8px;">
+                <input type="text"
+                       name="training_name"
+                       placeholder="Trainingsname (z.B. U8 Angriff 45min light)"
+                       style="
+                           width: 100%;
+                           max-width: 280px;
+                           padding: 12px;
+                           border-radius: 16px;
+                       ">
+            </div>
+            <button class="btn" type="submit" style="width: 180px;">Training speichern</button>
+        </form>
+    </div>
+
+    <hr style="border-color: #243246; width: 100%; margin: 4px 0 10px 0;">
+
+    <!-- Teile / Übungen als Karten -->
+    <div style="flex: 1; overflow-y: auto; padding-right: 2px; margin-top: 4px;">
+        {% if trainings and trainings|length > 0 %}
+            {% for t in trainings %}
+                <div style="
+                    background-color: #111b33;
+                    border-radius: 16px;
+                    padding: 12px 14px;
+                    margin-bottom: 12px;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+                ">
+                    <!-- Teil-Label zentriert -->
+                    <div style="text-align: center; margin-bottom: 8px;">
+                        <span style="
+                            display: inline-block;
+                            padding: 4px 10px;
+                            border-radius: 999px;
+                            background-color: #3cff9a;
+                            color: #061322;
+                            font-size: 12px;
+                            font-weight: 600;
+                        ">
+                            Teil {{ loop.index }} von {{ trainings|length }}
+                        </span>
+                    </div>
+
+                    <p style="font-size: 13px; margin-bottom: 6px;">
+                        <strong>Equipment:</strong><br>{{ t.equipment }}
+                    </p>
+
+                    <p style="font-size: 13px; margin-bottom: 6px;">
+                        <strong>Aufbau / Setup:</strong><br>{{ t.setup }}
+                    </p>
+
+                    <p style="font-size: 13px; margin-bottom: 6px;">
+                        <strong>Anleitung:</strong><br>{{ t.instructions }}
+                    </p>
+
+                    {% if t.variations %}
+                        <p style="font-size: 13px; margin-bottom: 6px;">
+                            <strong>Variationen:</strong><br>{{ t.variations }}
+                        </p>
+                    {% endif %}
+
+                    {% if t.coaching_points %}
+                        <p style="font-size: 13px; margin-bottom: 0;">
+                            <strong>Coaching Points:</strong><br>{{ t.coaching_points }}
+                        </p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="text-align: center; margin-top: 10px;">
+                <em>Für dieses Training wurde in der Excel-Datei aktuell keine passende Übung gefunden.</em>
+            </p>
+        {% endif %}
+    </div>
+
+    <!-- Buttons unten -->
+    <div style="text-align: center; margin-top: 8px;">
+        <a href="{{ url_for('choose_age') }}">
+            <button class="btn" type="button">Neues Training starten</button>
+        </a>
+        <br>
+        <a href="{{ url_for('start') }}">
+            <button class="btn" type="button" style="margin-top: 6px;">Zur Startseite</button>
+        </a>
+    </div>
+
+</div>
+
+{% endblock %}

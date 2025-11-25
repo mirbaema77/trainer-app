@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <title>Training – Intensität</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #202733;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .phone {
+            width: 320px;
+            height: 600px;
+            background-color: #0b1730;
+            border-radius: 40px;
+            padding: 24px 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            color: white;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .progress {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .step {
+            width: 32px;
+            height: 8px;
+            border-radius: 4px;
+            background-color: #243246;
+        }
+
+        .step.active {
+            background-color: #3cff9a;
+        }
+
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            align-items: center;
+        }
+
+        button.option {
+            width: 220px;
+            padding: 12px 18px;
+            border-radius: 999px;
+            border: none;
+            background-color: #3cff9a;
+            color: #071625;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button.option:hover {
+            filter: brightness(1.05);
+        }
+    </style>
+</head>
+<body>
+<div class="phone">
+    <div class="progress">
+        <div class="step"></div>
+        <div class="step"></div>
+        <div class="step"></div>
+        <div class="step active"></div>
+        <div class="step"></div>
+    </div>
+
+    <div class="content">
+        <h1>Physische Belastung</h1>
+
+        <form method="post">
+            <button class="option" type="submit" name="physical" value="light">Leicht</button>
+            <button class="option" type="submit" name="physical" value="medium">Mittel</button>
+            <button class="option" type="submit" name="physical" value="heavy">Intensiv</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>
+

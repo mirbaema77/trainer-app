@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <title>Training: {{ training.name }}</title>
+</head>
+<body>
+    <h1>Training: {{ training.name }}</h1>
+
+    <p>
+        Erstellt am: {{ training.created_at }}<br>
+        Spieleralter: <strong>{{ training.age_group }}</strong><br>
+        Schwerpunkt: <strong>{{ training.focus }}</strong><br>
+        Dauer: <strong>{{ training.duration }} Minuten</strong><br>
+        Anzahl Spieler: <strong>{{ training.players }}</strong><br>
+        Physische Belastung: <strong>{{ training.physical }}</strong>
+    </p>
+
+    <hr>
+
+    <h2>Trainingszusammenstellung (aus Excel)</h2>
+
+    {% if trainings and trainings|length > 0 %}
+        {% for t in trainings %}
+            <h3>Part {{ t.part }}</h3>
+
+            {% if t.physically_challenge %}
+                <p><strong>Physische Belastung (Excel):</strong><br>{{ t.physically_challenge }}</p>
+            {% endif %}
+
+            <p><strong>Equipment:</strong><br>{{ t.equipment }}</p>
+
+            <p><strong>Aufbau / Setup:</strong><br>{{ t.setup }}</p>
+
+            <p><strong>Anleitung / Instructions:</strong><br>{{ t.instructions }}</p>
+
+            {% if t.variations %}
+                <p><strong>Variationen:</strong><br>{{ t.variations }}</p>
+            {% endif %}
+
+            {% if t.coaching_points %}
+                <p><strong>Coaching Points:</strong><br>{{ t.coaching_points }}</p>
+            {% endif %}
+
+            <hr>
+        {% endfor %}
+    {% else %}
+        <p><em>Für dieses gespeicherte Training wurde in der Excel-Datei aktuell keine passende Übung gefunden.</em></p>
+    {% endif %}
+
+    <p><a href="{{ url_for('my_trainings') }}">Zurück zu meinen Trainings</a></p>
+    <p><a href="{{ url_for('home') }}">Zur Startseite</a></p>
+</body>
+</html>
+
+{% endblock %}

@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Lokale Datenbank
+trainer.db
+
+# Modelldateien
+position_model_scaled.pkl
+*.pkl
