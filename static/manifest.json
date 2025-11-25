@@ -1,0 +1,20 @@
+{
+  "name": "Trainer App",
+  "short_name": "Trainer",
+  "start_url": "/start",
+  "display": "standalone",
+  "background_color": "#0b1730",
+  "theme_color": "#0b1730",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

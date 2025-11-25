@@ -3,7 +3,13 @@ import pandas as pd
 import numpy as np
 
 # Neues Modell laden (auf 1–10 Skala trainiert)
-position_model = joblib.load("position_model_scaled.pkl")
+#position_model = joblib.load("position_model_scaled.pkl")
+
+try:
+    position_model = joblib.load("position_model_scaled.pkl")
+except FileNotFoundError:
+    position_model = None
+    print("⚠️ WARNUNG: ML-Modell nicht gefunden. KI-Vorschläge deaktiviert.")
 
 FEATURE_COLS = [
     "Sprint speed",
@@ -33,12 +39,20 @@ def _sharpen_proba(proba, gamma: float = 1.5):
         p = p / total
     return p
 
-
 def recommend_position_from_attributes(attrs: dict):
     """
     attrs: dict mit Keys wie in FEATURE_COLS,
     Werte aus deinem Formular (1–10).
     """
+
+    # Falls das Modell nicht geladen werden konnte, Dummy-Vorschläge zurückgeben
+    if position_model is None:
+        print("⚠️ KI-Modell nicht geladen – gebe Dummy-Positionen zurück.")
+        return [
+            ("CM", 0.34),
+            ("ST", 0.33),
+            ("CB", 0.33),
+        ]
 
     row = {}
     for col in FEATURE_COLS:
