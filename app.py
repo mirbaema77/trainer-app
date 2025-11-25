@@ -152,14 +152,6 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
-with app.app_context():
-    db.create_all()
-
-@app.route("/init-db")
-def init_db():
-    db.create_all()
-    return "DB initialized"
-
 
 class Player(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -253,6 +245,15 @@ class Training(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     coach = db.relationship("Coach", backref="trainings")
+
+
+with app.app_context():
+    db.create_all()
+
+@app.route("/init-db")
+def init_db():
+    db.create_all()
+    return "DB initialized"
 
 
 def find_training_from_excel(age_group, focus, duration, players_count, physical):
