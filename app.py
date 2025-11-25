@@ -155,6 +155,11 @@ db = SQLAlchemy(app)
 with app.app_context():
     db.create_all()
 
+@app.route("/init-db")
+def init_db():
+    db.create_all()
+    return "DB initialized"
+
 
 class Player(db.Model):
     id = db.Column(db.Integer, primary_key=True)
