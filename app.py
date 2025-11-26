@@ -141,9 +141,6 @@ def normalize_for_formation(code: str) -> str:
         return code  # CDM & CAM bleiben für 4-2-3-1 Slots
     return code
 
-
-
-
 app = Flask(__name__)
 app.secret_key = "change-me-later"
 
@@ -163,30 +160,24 @@ class Player(db.Model):
     phone = db.Column(db.String(50))
 
     # Physical data
-    height_cm = db.Column(db.Integer)          # Körpergröße
-    weight_kg = db.Column(db.Integer)          # Gewicht
-    preferred_foot = db.Column(db.String(5))   # "Left" oder "Right"
+    height_cm = db.Column(db.Integer)
+    weight_kg = db.Column(db.Integer)
+    preferred_foot = db.Column(db.String(5))
 
-    # AI-friendly value: Körpergröße ist height_cm
-    # But body_size is same as height, we don’t need a new field.
+    position = db.Column(db.String(50))
 
-    position = db.Column(db.String(50))        # Coach can still enter manually if needed
-
-    # Player ratings (1–10)
-    # --- PHY ---
+    # Ratings ...
     speed = db.Column(db.Integer, default=5)
     stamina = db.Column(db.Integer, default=5)
     strength = db.Column(db.Integer, default=5)
-    aggression = db.Column(db.Integer, default=5)  # <-- NEW: important for IV/6er
+    aggression = db.Column(db.Integer, default=5)
     tackling = db.Column(db.Integer, default=5)
 
-    # Unnecessary for AI but you keep them if you want
     acceleration = db.Column(db.Integer, default=5)
     top_speed = db.Column(db.Integer, default=5)
     coordination = db.Column(db.Integer, default=5)
     agility = db.Column(db.Integer, default=5)
 
-    # --- TECH & MENTAL ---
     dribbling = db.Column(db.Integer, default=5)
     first_touch = db.Column(db.Integer, default=5)
     short_passing = db.Column(db.Integer, default=5)
@@ -194,10 +185,9 @@ class Player(db.Model):
     finishing = db.Column(db.Integer, default=5)
     shooting_power = db.Column(db.Integer, default=5)
 
-    decision_making = db.Column(db.Integer, default=5)  # Tactical Awareness
+    decision_making = db.Column(db.Integer, default=5)
     marking = db.Column(db.Integer, default=5)
 
-    # Optional extra mental stats
     vision = db.Column(db.Integer, default=5)
     creativity = db.Column(db.Integer, default=5)
     composure = db.Column(db.Integer, default=5)
@@ -209,7 +199,6 @@ class Player(db.Model):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
-
 
 
 class Coach(db.Model):
@@ -247,12 +236,19 @@ class Training(db.Model):
     coach = db.relationship("Coach", backref="trainings")
 
 
+# ➜ JETZT, wo alle Models bekannt sind, Tabellen anlegen:
 with app.app_context():
     db.create_all()
 
+
+# Optional, aber hilfreich zum Testen:
 @app.route("/init-db")
 def init_db():
     db.create_all()
+    return "DB initialized"
+
+
+
     return "DB initialized"
 
 
