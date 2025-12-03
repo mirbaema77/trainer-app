@@ -512,7 +512,7 @@ def choose_players():
         session["players"] = players_count
 
         # Neuer Schritt: immer zuerst auf KI-Teaser gehen
-        return redirect(url_for("ai_wishes_teaser"))
+        return redirect(url_for("auth_choice"))
 
     players_count = session.get("players", 16)
     return render_template("players.html", players=players_count)
@@ -524,7 +524,7 @@ def ai_wishes_teaser():
     # das Feature ist (noch) nicht verfügbar.
     if request.method == "POST":
         # Trainer klickt auf "Weiter ohne KI" → normal zur Summary
-        return redirect(url_for("summary"))
+        return redirect(url_for("auth_choice"))
 
     return render_template("ai_wishes_teaser.html")
 
