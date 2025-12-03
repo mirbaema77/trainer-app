@@ -5,7 +5,8 @@ from datetime import datetime
 
 import pandas as pd
 
-from ml_model import recommend_position_from_attributes
+from ml_model import recommend_position_from_attributes, map_form_to_model_features
+
 
 NICE_POSITION_LABELS = {
     "RB": "Rechter Verteidiger",
@@ -67,7 +68,7 @@ def get_position_label_for_formation(code: str, formation: str) -> str:
 # ------------------------------------------------------------
 
 FORMATION_SLOTS = {
-    # ---------------- 4-3-3 (horizontal, Tor links, Angriff rechts) ----------------
+    # 4-3-3
     "4-3-3": [
         {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-433-gk"},
 
@@ -80,12 +81,31 @@ FORMATION_SLOTS = {
         {"id": "cm",  "code_key": "CM", "label": "CM", "css": "slot-433-cm"},
         {"id": "rcm", "code_key": "CM", "label": "CM", "css": "slot-433-rcm"},
 
-        {"id": "lw",  "code_key": "LM", "label": "LW", "css": "slot-433-lw"},
+        {"id": "lw",  "code_key": "LW", "label": "LW", "css": "slot-433-lw"},
         {"id": "st",  "code_key": "ST", "label": "ST", "css": "slot-433-st"},
-        {"id": "rw",  "code_key": "RM", "label": "RW", "css": "slot-433-rw"},
+        {"id": "rw",  "code_key": "RW", "label": "RW", "css": "slot-433-rw"},
     ],
 
-    # ---------------- 4-4-2 ----------------
+    # 4-2-3-1
+    "4-2-3-1": [
+        {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-4231-gk"},
+
+        {"id": "lb",  "code_key": "LB", "label": "LB", "css": "slot-4231-lb"},
+        {"id": "lcb", "code_key": "CB", "label": "CB", "css": "slot-4231-lcb"},
+        {"id": "rcb", "code_key": "CB", "label": "CB", "css": "slot-4231-rcb"},
+        {"id": "rb",  "code_key": "RB", "label": "RB", "css": "slot-4231-rb"},
+
+        {"id": "ldm", "code_key": "CDM", "label": "DM", "css": "slot-4231-ldm"},
+        {"id": "rdm", "code_key": "CDM", "label": "DM", "css": "slot-4231-rdm"},
+
+        {"id": "lam", "code_key": "LM",  "label": "LW",  "css": "slot-4231-lam"},
+        {"id": "cam", "code_key": "CAM", "label": "CAM", "css": "slot-4231-cam"},
+        {"id": "ram", "code_key": "RM",  "label": "RW",  "css": "slot-4231-ram"},
+
+        {"id": "st",  "code_key": "ST", "label": "ST", "css": "slot-4231-st"},
+    ],
+
+    # 4-4-2 (flat)
     "4-4-2": [
         {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-442-gk"},
 
@@ -103,8 +123,26 @@ FORMATION_SLOTS = {
         {"id": "rst", "code_key": "ST", "label": "ST", "css": "slot-442-rst"},
     ],
 
-    # ---------------- 4-2-3-1 ----------------
-    "4-2-3-1": [
+    # 4-4-2 Diamond
+    "4-4-2-diamond": [
+        {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-442-gk"},
+
+        {"id": "lb",  "code_key": "LB", "label": "LB", "css": "slot-442-lb"},
+        {"id": "lcb", "code_key": "CB", "label": "CB", "css": "slot-442-lcb"},
+        {"id": "rcb", "code_key": "CB", "label": "CB", "css": "slot-442-rcb"},
+        {"id": "rb",  "code_key": "RB", "label": "RB", "css": "slot-442-rb"},
+
+        {"id": "cdm", "code_key": "CDM", "label": "CDM", "css": "slot-442-lcm"},
+        {"id": "lcm", "code_key": "CM",  "label": "CM",  "css": "slot-442-lm"},
+        {"id": "rcm", "code_key": "CM",  "label": "CM",  "css": "slot-442-rm"},
+        {"id": "cam", "code_key": "CAM", "label": "CAM", "css": "slot-442-rcm"},
+
+        {"id": "lst", "code_key": "ST", "label": "ST", "css": "slot-442-lst"},
+        {"id": "rst", "code_key": "ST", "label": "ST", "css": "slot-442-rst"},
+    ],
+
+    # 4-1-4-1
+    "4-1-4-1": [
         {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-4231-gk"},
 
         {"id": "lb",  "code_key": "LB", "label": "LB", "css": "slot-4231-lb"},
@@ -112,22 +150,103 @@ FORMATION_SLOTS = {
         {"id": "rcb", "code_key": "CB", "label": "CB", "css": "slot-4231-rcb"},
         {"id": "rb",  "code_key": "RB", "label": "RB", "css": "slot-4231-rb"},
 
-        {"id": "ldm", "code_key": "CDM", "label": "DM", "css": "slot-4231-ldm"},
-        {"id": "rdm", "code_key": "CDM", "label": "DM", "css": "slot-4231-rdm"},
+        {"id": "cdm", "code_key": "CDM", "label": "CDM", "css": "slot-4231-ldm"},
 
-        {"id": "lam", "code_key": "LM",  "label": "LW", "css": "slot-4231-lam"},
-        {"id": "cam", "code_key": "CAM", "label": "CAM", "css": "slot-4231-cam"},
-        {"id": "ram", "code_key": "RM",  "label": "RW", "css": "slot-4231-ram"},
+        {"id": "lam", "code_key": "LM",  "label": "LM",  "css": "slot-4231-lam"},
+        {"id": "lcm", "code_key": "CM",  "label": "CM",  "css": "slot-4231-cam"},
+        {"id": "rcm", "code_key": "CM",  "label": "CM",  "css": "slot-4231-ram"},
+        {"id": "ram", "code_key": "RM",  "label": "RM",  "css": "slot-4231-ram"},
 
         {"id": "st",  "code_key": "ST", "label": "ST", "css": "slot-4231-st"},
+    ],
+
+    # 4-3-1-2
+    "4-3-1-2": [
+        {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-433-gk"},
+
+        {"id": "lb",  "code_key": "LB", "label": "LB", "css": "slot-433-lb"},
+        {"id": "lcb", "code_key": "CB", "label": "CB", "css": "slot-433-lcb"},
+        {"id": "rcb", "code_key": "CB", "label": "CB", "css": "slot-433-rcb"},
+        {"id": "rb",  "code_key": "RB", "label": "RB", "css": "slot-433-rb"},
+
+        {"id": "lcm", "code_key": "CM",  "label": "CM",  "css": "slot-433-lcm"},
+        {"id": "cm",  "code_key": "CM",  "label": "CM",  "css": "slot-433-cm"},
+        {"id": "rcm", "code_key": "CM",  "label": "CM",  "css": "slot-433-rcm"},
+
+        {"id": "cam", "code_key": "CAM", "label": "CAM", "css": "slot-4231-cam"},
+
+        {"id": "lst", "code_key": "ST", "label": "ST", "css": "slot-442-lst"},
+        {"id": "rst", "code_key": "ST", "label": "ST", "css": "slot-442-rst"},
+    ],
+
+    # 3-5-2
+    "3-5-2": [
+        {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-352-gk"},
+
+        {"id": "lcb", "code_key": "CB", "label": "CB", "css": "slot-352-lcb"},
+        {"id": "cb",  "code_key": "CB", "label": "CB", "css": "slot-352-cb"},
+        {"id": "rcb", "code_key": "CB", "label": "CB", "css": "slot-352-rcb"},
+
+        {"id": "lwb", "code_key": "LWB", "label": "LWB", "css": "slot-352-lwb"},
+        {"id": "lcm", "code_key": "CM",  "label": "CM",  "css": "slot-352-lcm"},
+        {"id": "cm",  "code_key": "CM",  "label": "CM",  "css": "slot-352-cm"},
+        {"id": "rcm", "code_key": "CM",  "label": "CM",  "css": "slot-352-rcm"},
+        {"id": "rwb", "code_key": "RWB", "label": "RWB", "css": "slot-352-rwb"},
+
+        {"id": "lst", "code_key": "ST", "label": "ST", "css": "slot-352-lst"},
+        {"id": "rst", "code_key": "ST", "label": "ST", "css": "slot-352-rst"},
+    ],
+
+    # 3-4-3
+    "3-4-3": [
+        {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-343-gk"},
+
+        {"id": "lcb", "code_key": "CB", "label": "CB", "css": "slot-343-lcb"},
+        {"id": "cb",  "code_key": "CB", "label": "CB", "css": "slot-343-cb"},
+        {"id": "rcb", "code_key": "CB", "label": "CB", "css": "slot-343-rcb"},
+
+        {"id": "lm",  "code_key": "LM",  "label": "LM",  "css": "slot-343-lm"},
+        {"id": "lcm", "code_key": "CM",  "label": "CM",  "css": "slot-343-lcm"},
+        {"id": "rcm", "code_key": "CM",  "label": "CM",  "css": "slot-343-rcm"},
+        {"id": "rm",  "code_key": "RM",  "label": "RM",  "css": "slot-343-rm"},
+
+        {"id": "lw",  "code_key": "LW",  "label": "LW",  "css": "slot-343-lw"},
+        {"id": "st",  "code_key": "ST",  "label": "ST",  "css": "slot-343-st"},
+        {"id": "rw",  "code_key": "RW",  "label": "RW",  "css": "slot-343-rw"},
     ],
 }
 
 FORMATION_ALLOWED = {
-    "4-3-3": {"LB", "CB", "RB", "CDM", "CM", "CAM", "LM", "LW", "RM", "RW", "CF", "ST"},
-    "4-4-2": {"LB", "CB", "RB", "LM", "RM", "CM", "CDM", "CAM", "CF", "ST"},
+    "4-3-3": {"LB", "CB", "RB", "LWB", "RWB", "CDM", "CM", "CAM", "LM", "LW", "RM", "RW", "CF", "ST", "LF", "RF", "LS", "RS"},
     "4-2-3-1": {"LB", "CB", "RB", "CDM", "CM", "CAM", "LM", "LW", "RM", "RW", "CF", "ST"},
+    "4-4-2": {"LB", "CB", "RB", "LM", "RM", "CM", "CDM", "CAM", "CF", "ST", "LS", "RS"},
+    "4-4-2-diamond": {"LB", "CB", "RB", "CDM", "CM", "CAM", "CF", "ST", "LS", "RS"},
+    "4-1-4-1": {"LB", "CB", "RB", "CDM", "CM", "CAM", "LM", "RM", "LW", "RW", "CF", "ST"},
+    "4-3-1-2": {"LB", "CB", "RB", "CM", "CAM", "CF", "ST", "LS", "RS"},
+    "3-5-2": {"CB", "LWB", "RWB", "CM", "CDM", "CAM", "LM", "RM", "CF", "ST", "LS", "RS"},
+    "3-4-3": {"CB", "LWB", "RWB", "CM", "LM", "RM", "LW", "RW", "CF", "ST", "LF", "RF"},
 }
+
+POSITION_SIMILAR = {
+    "CM":  ["CM", "CDM", "CAM"],
+    "CDM": ["CDM", "CM", "CB"],
+    "CAM": ["CAM", "CF", "CM"],
+
+    "LM":  ["LM", "LW"],
+    "RM":  ["RM", "RW"],
+    "LW":  ["LW", "LM"],
+    "RW":  ["RW", "RM"],
+
+    "CF":  ["CF", "ST", "CAM"],
+    "ST":  ["ST", "CF", "LS", "RS"],
+    "LS":  ["LS", "ST", "CF"],
+    "RS":  ["RS", "ST", "CF"],
+    "LF":  ["LF", "LW", "CF"],
+    "RF":  ["RF", "RW", "CF"],
+}
+
+
+
 
 def normalize_for_formation(code: str) -> str:
     """Mappt KI-Labels auf Formation-Slots (z.B. LW -> LM, CF -> ST)."""
@@ -392,14 +511,22 @@ def choose_players():
         players_count = request.form.get("players")
         session["players"] = players_count
 
-        if not session.get("coach_id"):
-            return redirect(url_for("auth_choice"))
-
-        return redirect(url_for("summary"))
+        # Neuer Schritt: immer zuerst auf KI-Teaser gehen
+        return redirect(url_for("ai_wishes_teaser"))
 
     players_count = session.get("players", 16)
     return render_template("players.html", players=players_count)
 
+
+@app.route("/ai-wishes", methods=["GET", "POST"])
+def ai_wishes_teaser():
+    # Dieser Screen ist nur ein Teaser für KI-Trainings,
+    # das Feature ist (noch) nicht verfügbar.
+    if request.method == "POST":
+        # Trainer klickt auf "Weiter ohne KI" → normal zur Summary
+        return redirect(url_for("summary"))
+
+    return render_template("ai_wishes_teaser.html")
 
 @app.route("/summary", methods=["GET", "POST"])
 def summary():
@@ -411,7 +538,15 @@ def summary():
 
     save_message = None
 
+    # ---------------------------------------------------------
+    # SPEICHERN DEAKTIVIERT (MVP)
+    # ---------------------------------------------------------
     if request.method == "POST":
+        # Speichern ist ausgeschaltet. Wenn du es später aktivieren willst,
+        # einfach den Block unten wieder einkommentieren.
+        pass
+
+        """
         if not session.get("coach_id"):
             return redirect(url_for("auth_choice"))
 
@@ -442,6 +577,7 @@ def summary():
         db.session.commit()
 
         save_message = "Training wurde gespeichert."
+        """
 
     trainings = find_training_from_excel(
         age_group=age_group,
@@ -461,6 +597,7 @@ def summary():
         trainings=trainings,
         save_message=save_message,
     )
+
 
 
 
@@ -602,6 +739,8 @@ def new_player():
 
     return render_template("player_new.html")
 
+
+
 @app.route("/players/<int:player_id>/attributes", methods=["GET", "POST"])
 def edit_player_attributes(player_id):
     player = Player.query.get_or_404(player_id)
@@ -627,7 +766,7 @@ def edit_player_attributes(player_id):
         player.shooting_power = int(request.form.get("shooting_power", player.shooting_power))
         player.decision_making = int(request.form.get("decision_making", player.decision_making))
 
-        # ❗ HIER KOMMT DEIN NEUER BLOCK HIN ❗
+        # starker Fuß
         pf_val = request.form.get("preferred_foot_slider")
         if pf_val == "0":
             player.preferred_foot = "Left"
@@ -636,43 +775,27 @@ def edit_player_attributes(player_id):
         else:
             player.preferred_foot = None
 
-        # Rest wie bisher:
         db.session.commit()
-
 
         if action == "suggest":
             formation = request.form.get("formation") or "4-3-3"
 
-            attrs_for_model = {
-                "Sprint speed": player.speed,
-                "Stamina": player.stamina,
-                "Strength": player.strength,
-                "Aggression": player.aggression,
-                "Tactical Awareness": player.decision_making,
-                "Ball control": player.first_touch,
-                "Dribbling": player.dribbling,
-                "Finishing": player.finishing,
-                "Long passing": player.long_passing,
-                "Short passing": player.short_passing,
-                "Shot power": player.shooting_power,
-                "Tackling": player.tackling,
-                "Body Size (cm)": player.height_cm or 0,
-                "Weight (kg)": player.weight_kg or 0,
-                "Preferred foot_left": 1.0 if player.preferred_foot == "Left" else 0.0,
-            }
+            # UI → Modell-Features (1–10)
+            attrs_for_model = map_form_to_model_features(request.form)
 
+            # ML-Aufruf
             top3 = recommend_position_from_attributes(attrs_for_model)
 
-            # Top3 als Dicts fürs Template
+            # Top3 fürs Template aufbereiten
             top3_positions = []
             for code, prob in top3:
                 top3_positions.append({
                     "code": code,
                     "label": get_position_label_for_formation(code, formation),
-                    "percent": f"{prob * 100:.1f}%"
+                    "percent": f"{prob * 100:.1f}%",
                 })
 
-            # Formation-Infos holen
+            # Formation holen
             formation_def = FORMATION_SLOTS.get(formation, FORMATION_SLOTS["4-3-3"])
             allowed = FORMATION_ALLOWED.get(formation, FORMATION_ALLOWED["4-3-3"])
 
@@ -688,7 +811,7 @@ def edit_player_attributes(player_id):
                 best_code, best_prob = top3[0]
 
             highlight_code = normalize_for_formation(best_code)
-            highlight_percent = f"{best_prob*100:.1f}%"
+            highlight_percent = f"{best_prob * 100:.1f}%"
 
             return render_template(
                 "player_position_suggestion.html",
@@ -700,17 +823,11 @@ def edit_player_attributes(player_id):
                 top3_positions=top3_positions,
             )
         else:
-            # Nur speichern -> zurück zur Übersicht
+            # Nur speichern → zurück zur Übersicht
             return redirect(url_for("list_players"))
 
-
-
-
-    # GET: Attribute anzeigen, noch ohne KI
+    # GET: nur die Attribute-Seite anzeigen
     return render_template("player_attributes.html", player=player)
-
-
-
 
 
     # ---------- NEU: KI-Empfehlung für GET ----------
@@ -761,4 +878,5 @@ def edit_player_attributes(player_id):
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=True)
+

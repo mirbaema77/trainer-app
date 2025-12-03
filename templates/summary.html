@@ -4,12 +4,14 @@
 <div style="flex: 1; display: flex; flex-direction: column;">
 
     <!-- Header oben -->
+    <!-- Header oben -->
     <div style="text-align: center; margin-bottom: 12px;">
-        <div style="font-size: 14px; color: #3cff9a; margin-bottom: 6px;">
-            ✅ Training bereit
+        <div style="font-size: 16px; margin-bottom: 6px;">
+            Dein Trainingsvorschlag
         </div>
-        <h1 style="margin: 0;">Deine Einheit ist fertig</h1>
+
     </div>
+
 
     {% if save_message %}
         <p style="color: #3cff9a; text-align: center; margin-bottom: 8px;">
@@ -17,7 +19,12 @@
         </p>
     {% endif %}
 
-    <!-- Trainingsname + speichern -->
+    <!-- ---------------------------------------------------------
+         SPEICHERN DEAKTIVIERT (MVP)
+         Wenn du es später nutzen willst, einfach auskommentieren.
+    ---------------------------------------------------------- -->
+
+    {#
     <div style="text-align: center; margin-bottom: 14px;">
         <form method="post">
             <div style="margin-bottom: 8px;">
@@ -34,6 +41,7 @@
             <button class="btn" type="submit" style="width: 180px;">Training speichern</button>
         </form>
     </div>
+    #}
 
     <hr style="border-color: #243246; width: 100%; margin: 4px 0 10px 0;">
 

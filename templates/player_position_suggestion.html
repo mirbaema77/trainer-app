@@ -1,15 +1,38 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div style="flex: 1; display: flex; flex-direction: column;">
+<div class="pos-page">
 
-    <div class="content" style="padding-bottom: 0;">
-        <h1>Positions-Vorschlag<br>
-            <span style="font-size: 16px;">{{ player.full_name }}</span>
-        </h1>
+    <div class="pos-header">
+        <h1>Positions-Vorschlag</h1>
+        <div class="pos-subtitle">{{ player.full_name }}</div>
     </div>
 
     <style>
+        .pos-page {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pos-header {
+            padding: 8px 10px 0 10px;
+            text-align: left;
+        }
+
+        .pos-header h1 {
+            margin: 0;
+            font-size: 18px;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
+        .pos-subtitle {
+            font-size: 13px;
+            margin-top: 2px;
+            opacity: 0.9;
+        }
+
         .pitch-wrapper {
             flex: 1;
             padding: 6px 10px 10px 10px;
@@ -18,7 +41,7 @@
             gap: 6px;
         }
 
-        /* Legende oben */
+        /* Legende */
         .position-legend {
             font-size: 11px;
             text-align: left;
@@ -43,20 +66,19 @@
             font-weight: 600;
         }
 
-        /* Vertikales Spielfeld (Phone-Style) */
+        /* Vertikales Spielfeld */
         .pitch {
             position: relative;
             width: 100%;
             max-width: 320px;
             margin: 0 auto;
-            padding-top: 150%; /* hochkant */
+            padding-top: 150%;
             border-radius: 22px;
             overflow: hidden;
             background: radial-gradient(circle at 30% 0%, #1b7c4b 0%, #0b3a25 35%, #071522 100%);
             box-shadow: 0 0 18px rgba(0,0,0,0.7);
         }
 
-        /* Feld-Linien */
         .pitch::before {
             content: "";
             position: absolute;
@@ -81,7 +103,6 @@
             transform: translateY(-50%);
         }
 
-
         .pitch-center-circle {
             position: absolute;
             top: 50%;
@@ -92,7 +113,6 @@
             border: 2px solid rgba(255,255,255,0.28);
             transform: translate(-50%, -50%);
         }
-
 
         /* Positionskreise */
         .position-circle {
@@ -134,193 +154,117 @@
 
         /* -------------------------
            Slots VERTIKAL 4-3-3
-           Tor unten, Angriff oben
            ------------------------- */
+        .slot-433-gk   { top: 86%; left: 50%; transform: translate(-50%, -50%); }
 
-        .slot-433-gk {
-            top: 86%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
+        .slot-433-lb   { top: 72%; left: 25%; transform: translate(-50%, -50%); }
+        .slot-433-lcb  { top: 68%; left: 40%; transform: translate(-50%, -50%); }
+        .slot-433-rcb  { top: 68%; left: 60%; transform: translate(-50%, -50%); }
+        .slot-433-rb   { top: 72%; left: 75%; transform: translate(-50%, -50%); }
 
-        .slot-433-lb {
-            top: 72%;
-            left: 25%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-433-lcb {
-            top: 68%;
-            left: 40%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-433-rcb {
-            top: 68%;
-            left: 60%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-433-rb {
-            top: 72%;
-            left: 75%;
-            transform: translate(-50%, -50%);
-        }
+        .slot-433-lcm  { top: 54%; left: 30%; transform: translate(-50%, -50%); }
+        .slot-433-cm   { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .slot-433-rcm  { top: 54%; left: 70%; transform: translate(-50%, -50%); }
 
-        .slot-433-lcm {
-            top: 54%;
-            left: 30%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-433-cm {
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-433-rcm {
-            top: 54%;
-            left: 70%;
-            transform: translate(-50%, -50%);
-        }
-
-        .slot-433-lw {
-            top: 32%;
-            left: 25%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-433-st {
-            top: 26%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-433-rw {
-            top: 32%;
-            left: 75%;
-            transform: translate(-50%, -50%);
-        }
+        .slot-433-lw   { top: 32%; left: 25%; transform: translate(-50%, -50%); }
+        .slot-433-st   { top: 26%; left: 50%; transform: translate(-50%, -50%); }
+        .slot-433-rw   { top: 32%; left: 75%; transform: translate(-50%, -50%); }
 
         /* -------------------------
            Slots VERTIKAL 4-4-2
            ------------------------- */
+        .slot-442-gk   { top: 86%; left: 50%; transform: translate(-50%, -50%); }
 
-        .slot-442-gk {
-            top: 86%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
+        .slot-442-lb   { top: 72%; left: 25%; transform: translate(-50%, -50%); }
+        .slot-442-lcb  { top: 68%; left: 40%; transform: translate(-50%, -50%); }
+        .slot-442-rcb  { top: 68%; left: 60%; transform: translate(-50%, -50%); }
+        .slot-442-rb   { top: 72%; left: 75%; transform: translate(-50%, -50%); }
 
-        .slot-442-lb {
-            top: 72%;
-            left: 25%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-442-lcb {
-            top: 68%;
-            left: 40%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-442-rcb {
-            top: 68%;
-            left: 60%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-442-rb {
-            top: 72%;
-            left: 75%;
-            transform: translate(-50%, -50%);
-        }
+        .slot-442-lm   { top: 54%; left: 25%; transform: translate(-50%, -50%); }
+        .slot-442-lcm  { top: 50%; left: 40%; transform: translate(-50%, -50%); }
+        .slot-442-rcm  { top: 50%; left: 60%; transform: translate(-50%, -50%); }
+        .slot-442-rm   { top: 54%; left: 75%; transform: translate(-50%, -50%); }
 
-        .slot-442-lm {
-            top: 54%;
-            left: 25%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-442-lcm {
-            top: 50%;
-            left: 40%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-442-rcm {
-            top: 50%;
-            left: 60%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-442-rm {
-            top: 54%;
-            left: 75%;
-            transform: translate(-50%, -50%);
-        }
-
-        .slot-442-lst {
-            top: 30%;
-            left: 40%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-442-rst {
-            top: 30%;
-            left: 60%;
-            transform: translate(-50%, -50%);
-        }
+        .slot-442-lst  { top: 30%; left: 40%; transform: translate(-50%, -50%); }
+        .slot-442-rst  { top: 30%; left: 60%; transform: translate(-50%, -50%); }
 
         /* -------------------------
            Slots VERTIKAL 4-2-3-1
            ------------------------- */
+        .slot-4231-gk  { top: 86%; left: 50%; transform: translate(-50%, -50%); }
 
-        .slot-4231-gk {
-            top: 86%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+        .slot-4231-lb  { top: 72%; left: 25%; transform: translate(-50%, -50%); }
+        .slot-4231-lcb { top: 68%; left: 40%; transform: translate(-50%, -50%); }
+        .slot-4231-rcb { top: 68%; left: 60%; transform: translate(-50%, -50%); }
+        .slot-4231-rb  { top: 72%; left: 75%; transform: translate(-50%, -50%); }
+
+        .slot-4231-ldm { top: 58%; left: 40%; transform: translate(-50%, -50%); }
+        .slot-4231-rdm { top: 58%; left: 60%; transform: translate(-50%, -50%); }
+
+        .slot-4231-lam { top: 42%; left: 30%; transform: translate(-50%, -50%); }
+        .slot-4231-cam { top: 38%; left: 50%; transform: translate(-50%, -50%); }
+        .slot-4231-ram { top: 42%; left: 70%; transform: translate(-50%, -50%); }
+
+        .slot-4231-st  { top: 24%; left: 50%; transform: translate(-50%, -50%); }
+
+
+           ------------------------- */
+        /* -------------------------
+           Slots VERTIKAL 3-5-2
+
+        ------------------------ */
+        .slot-352-gk   { top: 86%; left: 50%; transform: translate(-50%, -50%); }
+
+        .slot-352-lcb  { top: 70%; left: 30%; transform: translate(-50%, -50%); }
+        .slot-352-cb   { top: 68%; left: 50%; transform: translate(-50%, -50%); }
+        .slot-352-rcb  { top: 70%; left: 70%; transform: translate(-50%, -50%); }
+
+        .slot-352-lwb  { top: 58%; left: 22%; transform: translate(-50%, -50%); }
+        .slot-352-lcm  { top: 52%; left: 38%; transform: translate(-50%, -50%); }
+        .slot-352-cm   { top: 48%; left: 50%; transform: translate(-50%, -50%); }
+        .slot-352-rcm  { top: 52%; left: 62%; transform: translate(-50%, -50%); }
+        .slot-352-rwb  { top: 58%; left: 78%; transform: translate(-50%, -50%); }
+
+        .slot-352-lst  { top: 32%; left: 42%; transform: translate(-50%, -50%); }
+        .slot-352-rst  { top: 32%; left: 58%; transform: translate(-50%, -50%); }
+
+
+
+        /* -------------------------
+           Slots VERTIKAL 3-4-3
+           ------------------------- */
+        .slot-343-gk   { top: 86%; left: 50%; transform: translate(-50%, -50%); }
+
+        .slot-343-lcb  { top: 72%; left: 30%; transform: translate(-50%, -50%); }
+        .slot-343-cb   { top: 70%; left: 50%; transform: translate(-50%, -50%); }
+        .slot-343-rcb  { top: 72%; left: 70%; transform: translate(-50%, -50%); }
+
+        .slot-343-lm   { top: 56%; left: 24%; transform: translate(-50%, -50%); }
+        .slot-343-lcm  { top: 54%; left: 40%; transform: translate(-50%, -50%); }
+        .slot-343-rcm  { top: 54%; left: 60%; transform: translate(-50%, -50%); }
+        .slot-343-rm   { top: 56%; left: 76%; transform: translate(-50%, -50%); }
+
+        .slot-343-lw   { top: 32%; left: 28%; transform: translate(-50%, -50%); }
+        .slot-343-st   { top: 28%; left: 50%; transform: translate(-50%, -50%); }
+        .slot-343-rw   { top: 32%; left: 72%; transform: translate(-50%, -50%); }
+
+
+
+        /* Aktionen unten */
+        .pos-actions {
+            padding: 4px 10px 10px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
         }
 
-        .slot-4231-lb {
-            top: 72%;
-            left: 25%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-4231-lcb {
-            top: 68%;
-            left: 40%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-4231-rcb {
-            top: 68%;
-            left: 60%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-4231-rb {
-            top: 72%;
-            left: 75%;
-            transform: translate(-50%, -50%);
+        .pos-actions a {
+            text-decoration: none;
         }
 
-        .slot-4231-ldm {
-            top: 58%;
-            left: 40%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-4231-rdm {
-            top: 58%;
-            left: 60%;
-            transform: translate(-50%, -50%);
-        }
-
-        .slot-4231-lam {
-            top: 42%;
-            left: 30%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-4231-cam {
-            top: 38%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-        .slot-4231-ram {
-            top: 42%;
-            left: 70%;
-            transform: translate(-50%, -50%);
-        }
-
-        .slot-4231-st {
-            top: 24%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+        .pos-actions form {
+            margin: 0;
         }
     </style>
 
@@ -345,6 +289,9 @@
         {% endif %}
 
         <div class="pitch">
+            <!-- DEBUG: -->
+            <!-- {{ slots }} -->
+
             <div class="pitch-center-circle"></div>
 
             {% if slots %}
@@ -364,13 +311,17 @@
 
     </div>
 
-    <div style="text-align: center; margin: 4px 0 8px 0;">
+    <div class="pos-actions">
+        <form method="post">
+            <button class="btn" type="submit" name="action" value="save">
+                Spieler speichern
+            </button>
+        </form>
+
         <a href="{{ url_for('edit_player_attributes', player_id=player.id) }}">
             <button class="btn" type="button">Attribute anpassen</button>
         </a>
-    </div>
 
-    <div style="text-align: center; margin-bottom: 8px;">
         <a href="{{ url_for('list_players') }}">
             <button class="btn" type="button">Zurück zur Übersicht</button>
         </a>
