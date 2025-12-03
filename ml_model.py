@@ -7,9 +7,12 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), "position_model_scaled.pkl"
 
 try:
     position_model = joblib.load(MODEL_PATH)
+    print("✅ MODEL LOADED:", MODEL_PATH)
+    print("👉 MODEL CLASSES:", position_model.named_steps["rf"].classes_)
 except FileNotFoundError:
     position_model = None
-    print("⚠️ WARNUNG: ML-Modell nicht gefunden. KI-Vorschläge deaktiviert.")
+    print("⚠️ MODEL NOT FOUND:", MODEL_PATH)
+
 
 
 # ⚠️ MUSS zu deinem TRAINING passen – inkl. Aggression, FK Accuracy, Long shots
