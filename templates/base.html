@@ -4,57 +4,28 @@
     <meta charset="utf-8">
     <title>{{ title if title else "Trainer App" }}</title>
 
-    <!-- Mobile / viewport -->
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-
-    <!-- PWA manifest -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <meta name="theme-color" content="#0b1730">
-
-    <!-- iOS PWA support -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Trainer App">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
 
     <style>
         body {
             margin: 0;
+            padding: 0;
             font-family: Arial, sans-serif;
-            background-color: #202733;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        .phone {
-            width: 320px;
-            height: 600px;
             background-color: #0b1730;
-            border-radius: 40px;
-            padding: 24px 20px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
             color: white;
-            box-sizing: border-box;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow-y: auto;
-            scrollbar-width: none;
-        }
-
-        /* Chrome / Edge / Safari: hide scrollbar */
-        .phone::-webkit-scrollbar {
-            display: none;
         }
 
         .content {
             flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 25px 20px;
+            box-sizing: border-box;
             text-align: center;
         }
 
@@ -63,7 +34,8 @@
         }
 
         .btn {
-            width: 220px;
+            width: 100%;
+            max-width: 280px;
             padding: 12px 18px;
             border-radius: 999px;
             border: none;
@@ -72,29 +44,17 @@
             font-size: 17px;
             font-weight: 600;
             cursor: pointer;
-            margin: 6px 0;
-        }
-
-        .btn:hover {
-            filter: brightness(1.05);
+            margin: 6px auto;
+            display: block;
         }
 
         input[type="text"],
         input[type="email"],
         input[type="password"],
-        input[type="date"] {
-            width: 220px;
-            padding: 10px;
-            border-radius: 12px;
-            border: none;
-            margin-bottom: 12px;
-            background-color: #e5e5e5;
-            font-size: 15px;
-            box-sizing: border-box;
-        }
-
+        input[type="date"],
         select {
-            width: 220px;
+            width: 100%;
+            max-width: 280px;
             padding: 10px;
             border-radius: 12px;
             border: none;
@@ -121,42 +81,22 @@
         .step.active {
             background-color: #3cff9a;
         }
-
-        .slider-wrapper {
-            width: 100%;
-            text-align: center;
-        }
-
-        input[type=range] {
-            width: 100%;
-        }
-
-        .players-value {
-            font-size: 22px;
-            font-weight: bold;
-            margin-top: 10px;
-        }
     </style>
 </head>
 
 <body>
-<div class="phone">
-    {% block content %}{% endblock %}
-</div>
 
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('{{ url_for("static", filename="sw.js") }}')
-        .then(function (registration) {
-          console.log('Service Worker registered:', registration.scope);
-        })
-        .catch(function (error) {
-          console.log('Service Worker registration failed:', error);
-        });
-    });
-  }
-</script>
+    <div class="content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('{{ url_for("static", filename="service-worker.js") }}')
+          .then(reg => console.log("Service Worker registered:", reg.scope))
+          .catch(err => console.log("SW registration failed:", err));
+      }
+    </script>
 
 </body>
 </html>
