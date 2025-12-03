@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content" style="padding: 10px;">
+
+    <h2 style="margin-bottom: 16px;">App installieren</h2>
+
+    <div id="install-ios-safari" style="display:none; text-align:left; font-size:14px;">
+        <p>So fügst du die App auf deinem iPhone hinzu:</p>
+        <ol>
+            <li>Öffne diese Seite in <strong>Safari</strong> (nicht in Chrome).</li>
+            <li>Tippe unten auf das <strong>Teilen-Symbol</strong> (<span style="font-size:18px;">⬆️</span>).</li>
+            <li>Wähle <strong>„Zum Home-Bildschirm“</strong>.</li>
+            <li>Bestätige den Namen und tippe auf <strong>„Hinzufügen“</strong>.</li>
+        </ol>
+        <p>Danach findest du die App als Icon auf deinem Home-Bildschirm.</p>
+    </div>
+
+    <div id="install-ios-other" style="display:none; text-align:left; font-size:14px;">
+        <p>Du nutzt gerade einen anderen Browser (z. B. Chrome) auf einem iPhone.</p>
+        <p>Damit du die App installieren kannst:</p>
+        <ol>
+            <li>Öffne <strong>Safari</strong>.</li>
+            <li>Gib oben diese Adresse ein:</li>
+        </ol>
+        <div style="padding:8px 10px; border-radius:12px; background:#111827; word-wrap:break-word; font-size:13px;">
+            https://trainer-app-production-cf65.up.railway.app/install
+        </div>
+        <ol start="3">
+            <li>Tippe unten auf das <strong>Teilen-Symbol</strong> (<span style="font-size:18px;">⬆️</span>).</li>
+            <li>Wähle <strong>„Zum Home-Bildschirm“</strong> und bestätige.</li>
+        </ol>
+    </div>
+
+    <div id="install-android" style="display:none; text-align:left; font-size:14px;">
+        <p>So fügst du die App auf deinem Android-Gerät hinzu:</p>
+        <ol>
+            <li>Öffne diese Seite in <strong>Chrome</strong>.</li>
+            <li>Tippe oben rechts auf das <strong>Menü (⋮)</strong>.</li>
+            <li>Wähle <strong>„App installieren“</strong> oder <strong>„Zum Startbildschirm hinzufügen“</strong>.</li>
+            <li>Bestätige den Namen und tippe auf <strong>„Hinzufügen“</strong>.</li>
+        </ol>
+    </div>
+
+    <div id="already-installed" style="display:none; font-size:14px;">
+        <p>Die App ist bereits installiert und läuft im Vollbild-Modus. 🎉</p>
+    </div>
+
+    <div id="fallback-desktop" style="display:none; font-size:14px; text-align:left;">
+        <p>Du verwendest gerade einen Desktop-Browser.</p>
+        <p>Öffne diese Seite auf deinem <strong>Smartphone</strong>, um die App dort auf dem Home-Bildschirm zu speichern.</p>
+    </div>
+
+</div>
+
+<script>
+  (function() {
+    const ua = window.navigator.userAgent.toLowerCase();
+
+    const isIos   = /iphone|ipad|ipod/.test(ua);
+    const isIpad  = /ipad/.test(ua) || (isIos && !/iphone/.test(ua) && screen.width >= 768);
+    const isAndroid = /android/.test(ua);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+    // iOS browser detection
+    const isChromeIos = /crios/.test(ua);
+    const isFirefoxIos = /fxios/.test(ua);
+    const isEdgeIos = /edgios/.test(ua);
+    const isSafariIos = isIos && !isChromeIos && !isFirefoxIos && !isEdgeIos;
+
+    function show(id) {
+      document.getElementById('install-ios-safari').style.display = 'none';
+      document.getElementById('install-ios-other').style.display = 'none';
+      document.getElementById('install-android').style.display = 'none';
+      document.getElementById('already-installed').style.display = 'none';
+      document.getElementById('fallback-desktop').style.display = 'none';
+
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'block';
+    }
+
+    if (isStandalone) {
+      show('already-installed');
+      return;
+    }
+
+    if (isIos || isIpad) {
+      if (isSafariIos) {
+        show('install-ios-safari');
+      } else {
+        show('install-ios-other');
+      }
+      return;
+    }
+
+    if (isAndroid) {
+      show('install-android');
+      return;
+    }
+
+    // desktop or unknown
+    show('fallback-desktop');
+  })();
+</script>
+{% endblock %}

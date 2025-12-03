@@ -528,6 +528,11 @@ def ai_wishes_teaser():
 
     return render_template("ai_wishes_teaser.html")
 
+@app.route("/install")
+def install_pwa():
+    return render_template("install.html")
+
+
 @app.route("/summary", methods=["GET", "POST"])
 def summary():
     age_group = session.get("age_group")

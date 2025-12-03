@@ -2,22 +2,32 @@
 {% block content %}
 
 <div class="content">
-    <h1>Start</h1>
 
-    <a href="{{ url_for('choose_age') }}">
+    <h1 style="margin-bottom: 32px;">Start</h1>
+
+    <!-- Install PWA Button -->
+    <form action="{{ url_for('install_pwa') }}" method="get" style="margin-bottom: 20px;">
+        <button type="submit" class="btn" style="background:#3cff9a; color:#071625;">
+            App auf Home-Screen speichern
+        </button>
+    </form>
+
+    <!-- Training erstellen -->
+    <a href="{{ url_for('choose_age') }}" style="text-decoration:none;">
         <button class="btn">Training erstellen</button>
     </a>
 
-    <a href="{{ url_for('list_players') }}">
+    <!-- Spieler & Positionen -->
+    <a href="{{ url_for('list_players') }}" style="text-decoration:none;">
         <button class="btn">Spieler &amp; Positionen</button>
     </a>
 
     {#
-
     <a href="{{ url_for('my_trainings') }}">
         <button class="btn">Meine Trainings</button>
     </a>
     #}
+
 </div>
 
 {% endblock %}
