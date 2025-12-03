@@ -1,21 +1,10 @@
-import joblib
 import pandas as pd
 import numpy as np
-import os
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "position_model_scaled.pkl")
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import Pipeline
 
-try:
-    position_model = joblib.load(MODEL_PATH)
-    print("✅ MODEL LOADED:", MODEL_PATH)
-    print("👉 MODEL CLASSES:", position_model.named_steps["rf"].classes_)
-except FileNotFoundError:
-    position_model = None
-    print("⚠️ MODEL NOT FOUND:", MODEL_PATH)
-
-
-
-# ⚠️ MUSS zu deinem TRAINING passen – inkl. Aggression, FK Accuracy, Long shots
+# MUST match your training columns
 FEATURE_COLS = [
     "Sprint speed",
     "Stamina",
@@ -32,7 +21,66 @@ FEATURE_COLS = [
     "Tackling",
 ]
 
-# Mapping: UI-Feldname → Modell-Feature
+
+def _train_position_model_from_excel():
+    """
+    Train the model directly from 'formation_attributes_numeric.xlsx'.
+    No .pkl file needed – built at app startup.
+    """
+    print("🔁 Training ML model from formation_attributes_numeric.xlsx ...")
+
+    # 1. Load Excel
+    df = pd.read_excel("formation_attributes_numeric.xlsx")
+    df["Position"] = df["Position"].astype(str).str.strip().str.upper()
+
+    # 2. Features & target
+    X_raw = df[FEATURE_COLS].copy()
+    y = df["Position"]
+
+    # 3. Scale FIFA 0–99 → 1–10
+    def scale_fifa_to_1_10(series: pd.Series) -> pd.Series:
+        s = series.astype(float)
+        min_val = s.min()
+        max_val = s.max()
+        if max_val == min_val:
+            return pd.Series(5.0, index=s.index)
+        scaled = 1.0 + (s - min_val) * 9.0 / (max_val - min_val)
+        return scaled
+
+    X_scaled = X_raw.copy()
+    for col in FEATURE_COLS:
+        X_scaled[col] = scale_fifa_to_1_10(X_scaled[col])
+
+    # 4. Define RandomForest
+    rf = RandomForestClassifier(
+        n_estimators=75,
+        max_depth=None,
+        min_samples_leaf=2,
+        n_jobs=-1,
+        random_state=42,
+        class_weight="balanced_subsample",
+    )
+
+    # 5. Train
+    rf.fit(X_scaled, y)
+
+    pipeline = Pipeline([
+        ("rf", rf),
+    ])
+
+    print("✅ ML model trained. Classes:", list(pipeline.named_steps["rf"].classes_))
+    return pipeline
+
+
+# Train once when this module is imported
+try:
+    position_model = _train_position_model_from_excel()
+except Exception as e:
+    position_model = None
+    print("⚠️ WARNING: Could not train ML model:", e)
+
+
+# Mapping: UI field → model feature
 UI_TO_MODEL_FEATURES = {
     "speed":           "Sprint speed",
     "stamina":         "Stamina",
@@ -45,7 +93,6 @@ UI_TO_MODEL_FEATURES = {
     "short_passing":   "Short passing",
     "shooting_power":  "Shot power",
     "tackling":        "Tackling",
-    # Tactical Awareness, FK Accuracy, Long shots kommen unten als Defaults
 }
 
 
@@ -62,7 +109,7 @@ def _clip_1_10(value, default=5.0) -> float:
 
 
 def _prepare_feature_vector(attrs: dict) -> pd.DataFrame:
-    """Dict → 1xN DataFrame, strikt FEATURE_COLS, Werte in [1,10]."""
+    """Dict → 1xN DataFrame, strict FEATURE_COLS, values in [1,10]."""
     row = {}
     for col in FEATURE_COLS:
         raw = attrs.get(col, 5.0)
@@ -71,7 +118,7 @@ def _prepare_feature_vector(attrs: dict) -> pd.DataFrame:
 
 
 def _sharpen_proba(proba, gamma: float = 1.5):
-    """Verteilung spitzer machen (Top-Klasse klarer hervorheben)."""
+    """Make distribution sharper (top class clearer)."""
     p = np.asarray(proba, dtype=float)
     p = np.power(p, gamma)
     s = p.sum()
@@ -82,16 +129,17 @@ def _sharpen_proba(proba, gamma: float = 1.5):
 
 def recommend_position_from_attributes(attrs: dict):
     """
-    attrs: Keys wie in FEATURE_COLS, Werte 1–10.
-    Rückgabe: Liste [(position_code, prob), ...] Top3.
+    attrs: keys like FEATURE_COLS, values 1–10.
+    Returns: list [(position_code, prob), ...] Top3.
     """
     if position_model is None:
-        print("⚠️ KI-Modell nicht geladen – Dummy-Vorschläge.")
+        print("⚠️ ML model not available – returning dummy suggestions.")
         return [("CM", 0.34), ("ST", 0.33), ("CB", 0.33)]
 
     X = _prepare_feature_vector(attrs)
     proba = position_model.predict_proba(X)[0]
-    classes = position_model.classes_
+    classes = position_model.classes_ if not hasattr(position_model, "named_steps") \
+        else position_model.named_steps["rf"].classes_
     proba_sharp = _sharpen_proba(proba, gamma=1.5)
 
     ranked = sorted(
@@ -104,17 +152,17 @@ def recommend_position_from_attributes(attrs: dict):
 
 def map_form_to_model_features(form):
     """
-    request.form → Dict mit Keys wie in FEATURE_COLS.
-    FK Accuracy & Long shots werden aktuell als neutrale 5.0 gesetzt.
+    request.form → dict with keys like FEATURE_COLS.
+    FK Accuracy & Long shots are currently set to neutral 5.0.
     """
     attrs = {col: 5.0 for col in FEATURE_COLS}
 
-    # Werte aus dem Formular mappen
+    # Map form values
     for ui_name, model_name in UI_TO_MODEL_FEATURES.items():
         raw_val = form.get(ui_name, 5)
         attrs[model_name] = _clip_1_10(raw_val, default=5.0)
 
-    # FK Accuracy und Long shots aktuell NICHT im UI → neutrale 5
+    # Not in UI yet → neutral defaults
     attrs["FK Accuracy"] = 5.0
     attrs["Long shots"] = 5.0
 

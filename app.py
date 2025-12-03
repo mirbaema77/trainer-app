@@ -505,18 +505,18 @@ def choose_physical():
     return render_template("physical.html", physical=physical)
 
 
+
 @app.route("/players-count", methods=["GET", "POST"])
 def choose_players():
     if request.method == "POST":
         players_count = request.form.get("players")
         session["players"] = players_count
 
-        # Neuer Schritt: immer zuerst auf KI-Teaser gehen
-        return redirect(url_for("auth_choice"))
+        # after players → go to AI teaser
+        return redirect(url_for("ai_wishes_teaser"))
 
     players_count = session.get("players", 16)
     return render_template("players.html", players=players_count)
-
 
 @app.route("/ai-wishes", methods=["GET", "POST"])
 def ai_wishes_teaser():
