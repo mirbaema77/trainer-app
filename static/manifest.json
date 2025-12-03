@@ -1,10 +1,10 @@
 {
-  "name": "Trainer App",
-  "short_name": "Trainer",
+  "name": "Noqe Trainer App",
+  "short_name": "Noqe",
   "start_url": "/start",
   "display": "standalone",
-  "background_color": "#0b1730",
-  "theme_color": "#0b1730",
+  "background_color": "#020617",
+  "theme_color": "#020617",
   "icons": [
     {
       "src": "/static/icons/icon-192.png",
