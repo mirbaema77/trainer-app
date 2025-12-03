@@ -13,19 +13,17 @@
     <meta name="apple-mobile-web-app-title" content="Trainer App">
 
     <style>
-        /* full-screen background */
         body {
             margin: 0;
             font-family: Arial, sans-serif;
-            background-color: #0b1730; /* same as app */
-            color: #ffffff;
+            background-color: #0b1730;
+            color: white;
             min-height: 100vh;
         }
 
-        /* main app container – full height, centered content */
         .phone {
             width: 100%;
-            max-width: 420px;          /* keep nice width on big screens */
+            max-width: 420px;
             min-height: 100vh;
             margin: 0 auto;
             padding: calc(16px + env(safe-area-inset-top, 0))
@@ -35,12 +33,7 @@
 
             display: flex;
             flex-direction: column;
-            justify-content: center;    /* vertical center */
-            align-items: center;        /* horizontal center */
-
-            /* no border, no shadow any more */
-            border-radius: 0;
-            box-shadow: none;
+            align-items: center;
         }
 
         .content {
@@ -51,26 +44,25 @@
             text-align: center;
         }
 
-        h1, h2, h3 {
-            margin-bottom: 24px;
+        h1 {
+            margin-top: 40px;
+            margin-bottom: 30px;
+            font-size: 32px;
+            font-weight: 700;
         }
 
         .btn {
-            width: 100%;
-            max-width: 280px;
-            padding: 12px 18px;
+            width: 280px;
+            padding: 14px 20px;
             border-radius: 999px;
             border: none;
             background-color: #3cff9a;
             color: #071625;
-            font-size: 17px;
+            font-size: 18px;
             font-weight: 600;
             cursor: pointer;
-            margin: 6px 0;
-        }
-
-        .btn:hover {
-            filter: brightness(1.05);
+            margin: 10px auto;
+            display: block;
         }
 
         input[type="text"],
@@ -78,34 +70,16 @@
         input[type="password"],
         input[type="date"],
         select {
-            width: 100%;
-            max-width: 280px;
-            padding: 10px;
+            width: 280px;
+            padding: 12px;
             border-radius: 12px;
             border: none;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             background-color: #e5e5e5;
             font-size: 15px;
             box-sizing: border-box;
         }
 
-        .progress {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 20px;
-            justify-content: center;
-        }
-
-        .step {
-            width: 32px;
-            height: 8px;
-            border-radius: 4px;
-            background-color: #243246;
-        }
-
-        .step.active {
-            background-color: #3cff9a;
-        }
     </style>
 </head>
 
@@ -118,15 +92,7 @@
 
 <script>
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('{{ url_for("static", filename="service-worker.js") }}')
-        .then(function (registration) {
-          console.log('Service Worker registered:', registration.scope);
-        })
-        .catch(function (error) {
-          console.log('Service Worker registration failed:', error);
-        });
-    });
+    navigator.serviceWorker.register('{{ url_for("static", filename="service-worker.js") }}');
   }
 </script>
 
