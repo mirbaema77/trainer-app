@@ -1,14 +1,16 @@
 import joblib
 import pandas as pd
 import numpy as np
+import os
 
-MODEL_PATH = "position_model_scaled.pkl"
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "position_model_scaled.pkl")
 
 try:
     position_model = joblib.load(MODEL_PATH)
 except FileNotFoundError:
     position_model = None
     print("⚠️ WARNUNG: ML-Modell nicht gefunden. KI-Vorschläge deaktiviert.")
+
 
 # ⚠️ MUSS zu deinem TRAINING passen – inkl. Aggression, FK Accuracy, Long shots
 FEATURE_COLS = [
