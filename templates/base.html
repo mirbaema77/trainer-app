@@ -33,6 +33,7 @@
 
             display: flex;
             flex-direction: column;
+            justify-content: center;   /* center vertically again */
             align-items: center;
         }
 
@@ -45,8 +46,8 @@
         }
 
         h1 {
-            margin-top: 40px;
-            margin-bottom: 30px;
+            margin-top: -50px;
+            margin-bottom: 40px;
             font-size: 32px;
             font-weight: 700;
         }
@@ -78,6 +79,34 @@
             background-color: #e5e5e5;
             font-size: 15px;
             box-sizing: border-box;
+        }
+
+        .progress {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .step {
+            width: 32px;
+            height: 8px;
+            border-radius: 4px;
+            background-color: #243246;
+        }
+
+        .step.active {
+            background-color: #3cff9a;
+        }
+
+
+        a {
+            text-decoration: none;
+            color: inherit;   /* use same text color as surrounding text */
+        }
+
+        a:hover {
+            text-decoration: none;
         }
 
     </style>
