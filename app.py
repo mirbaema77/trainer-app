@@ -1,4 +1,7 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, send_file
+import os
+
+
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
@@ -878,21 +881,21 @@ def edit_player_attributes(player_id):
         top3_positions=top3_display,
     )
 
-import os
-from flask import send_file, abort
 
 @app.route("/_admin/download-db")
 def download_db():
-    # simple protection with secret token in URL
     token = request.args.get("token")
     expected = os.environ.get("DB_ADMIN_TOKEN")
 
-    if not expected or token != expected:
-        # pretend it doesn't exist
-        abort(404)
+    if expected is None:
+        # helps us see if the env var is missing
+        return "DB_ADMIN_TOKEN not set on server", 500
+
+    if token != expected:
+        # route reached, but wrong / missing token
+        return "Forbidden", 403
 
     return send_file("trainer.db", as_attachment=True)
-
 
 
 
