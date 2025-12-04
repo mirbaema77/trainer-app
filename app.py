@@ -881,6 +881,8 @@ def edit_player_attributes(player_id):
         top3_positions=top3_display,
     )
 
+import os
+from flask import send_file, request
 
 @app.route("/_admin/download-db")
 def download_db():
@@ -888,14 +890,21 @@ def download_db():
     expected = os.environ.get("DB_ADMIN_TOKEN")
 
     if expected is None:
-        # helps us see if the env var is missing
         return "DB_ADMIN_TOKEN not set on server", 500
 
     if token != expected:
-        # route reached, but wrong / missing token
         return "Forbidden", 403
 
-    return send_file("trainer.db", as_attachment=True)
+    # Get actual sqlite path from SQLAlchemy
+    db_path = db.engine.url.database  # e.g. "/app/trainer.db" or "trainer.db"
+
+    if not db_path:
+        return "No sqlite database configured", 500
+
+    if not os.path.exists(db_path):
+        return f"DB file not found: {db_path}", 404
+
+    return send_file(db_path, as_attachment=True)
 
 
 
