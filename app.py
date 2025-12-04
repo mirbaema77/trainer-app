@@ -878,6 +878,22 @@ def edit_player_attributes(player_id):
         top3_positions=top3_display,
     )
 
+import os
+from flask import send_file, abort
+
+@app.route("/_admin/download-db")
+def download_db():
+    # simple protection with secret token in URL
+    token = request.args.get("token")
+    expected = os.environ.get("DB_ADMIN_TOKEN")
+
+    if not expected or token != expected:
+        # pretend it doesn't exist
+        abort(404)
+
+    return send_file("trainer.db", as_attachment=True)
+
+
 
 
 if __name__ == "__main__":
