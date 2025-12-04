@@ -19,12 +19,16 @@
             background-color: #0b1730;
             min-height: 100vh;
         }
-
         .phone {
             width: 100%;
             min-height: 100vh;
             box-sizing: border-box;
-            padding: 24px 20px 32px 20px;
+
+            /* add safe-area + extra space from the top and bottom */
+            padding: calc(40px + env(safe-area-inset-top, 0))
+                     20px
+                     calc(32px + env(safe-area-inset-bottom, 0));
+
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -33,8 +37,7 @@
         .progress {
             display: flex;
             gap: 4px;
-            margin-top: 10px;
-            margin-bottom: 26px;
+            margin-bottom: 32px;   /* only bottom margin now */
             justify-content: center;
         }
 

@@ -1,11 +1,10 @@
 <!doctype html>
 <html lang="de">
-
 <head>
     <meta charset="utf-8">
-    <title>Training – Spieleralter</title>
+    <title>Training – Spieleranzahl</title>
 
-    <!-- IMPORTANT: same viewport as base.html -->
+    <!-- IMPORTANT: same viewport + PWA as other pages -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#0b1730">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -21,11 +20,17 @@
             min-height: 100vh;
         }
 
+        /* updated: same safe-area layout as other filters */
         .phone {
             width: 100%;
             min-height: 100vh;
             box-sizing: border-box;
-            padding: 24px 20px 32px 20px;
+
+            /* add safe-area + extra space from the top and bottom */
+            padding: calc(40px + env(safe-area-inset-top, 0))
+                     20px
+                     calc(32px + env(safe-area-inset-bottom, 0));
+
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -34,8 +39,7 @@
         .progress {
             display: flex;
             gap: 4px;
-            margin-top: 10px;
-            margin-bottom: 26px;
+            margin-bottom: 32px;   /* only bottom margin now */
             justify-content: center;
         }
 
@@ -68,11 +72,28 @@
         form {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 24px;
             align-items: center;
+            width: 100%;
+            max-width: 360px;
         }
 
-        button.option {
+        .slider-wrapper {
+            width: 100%;
+            text-align: center;
+        }
+
+        input[type=range] {
+            width: 100%;
+        }
+
+        .players-value {
+            font-size: 22px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        button.submit-btn {
             width: 280px;
             padding: 14px 20px;
             border-radius: 999px;
@@ -84,14 +105,11 @@
             cursor: pointer;
         }
 
-        button.option:hover {
+        button.submit-btn:hover {
             filter: brightness(1.05);
         }
     </style>
 </head>
-
-
-
 <body>
 <div class="phone">
     <div class="progress">
