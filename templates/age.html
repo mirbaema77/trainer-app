@@ -3,22 +3,28 @@
 <head>
     <meta charset="utf-8">
     <title>Training – Spieleralter</title>
+
+    <!-- IMPORTANT: same viewport as base.html -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b1730">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Trainer App">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
     <style>
         body {
             margin: 0;
             font-family: Arial, sans-serif;
-            background-color: #0b1730;          /* same as app background */
+            background-color: #0b1730;
             min-height: 100vh;
         }
 
-        /* full-screen container, no fake phone frame */
         .phone {
             width: 100%;
             min-height: 100vh;
             box-sizing: border-box;
-
             padding: 24px 20px 32px 20px;
-
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -82,6 +88,10 @@
         }
     </style>
 </head>
+
+
+
+
 <body>
 <div class="phone">
     <div class="progress">
