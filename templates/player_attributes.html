@@ -9,7 +9,46 @@
         </h1>
     </div>
 
+    <!-- GLOBAL VALUE DISPLAY -->
+    <div class="current-attr-box">
+        <div class="current-attr-label" id="current-attr-label">Attribut</div>
+        <div class="current-attr-value" id="current-attr-value">–</div>
+    </div>
+
     <style>
+
+        /* =============== GLOBAL VALUE BOX STYLE =============== */
+
+        .current-attr-box {
+            width: 100%;
+            max-width: 360px;
+            margin: 10px auto 0 auto;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background-color: #172338;
+            color: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+            border: 1px solid rgba(60,255,154,0.25);
+        }
+
+        .current-attr-label {
+            opacity: 0.75;
+            font-size: 12px;
+        }
+
+        .current-attr-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #3cff9a;
+        }
+
+
+        /* ================= YOUR ORIGINAL STYLES ================= */
+
         .attr-page {
             flex: 1;
             display: flex;
@@ -36,10 +75,8 @@
             flex: 1;
             overflow-y: auto;
             padding: 6px 10px 4px 10px;
-            margin-top: 8px;   /* Abstand direkt unter dem Titel */
+            margin-top: 6px;
         }
-
-
 
         .attr-section {
             background: rgba(8, 18, 40, 0.95);
@@ -78,7 +115,6 @@
 
         .attr-input {
             width: 100%;
-            box-sizing: border-box;
             border-radius: 999px;
             border: 1px solid rgba(255,255,255,0.18);
             background: rgba(3, 10, 28, 0.9);
@@ -103,31 +139,17 @@
                 rgba(60,255,154,0.2)
             );
             border-radius: 999px;
-            outline: none;
-            padding: 0;
         }
 
         .attr-range::-webkit-slider-thumb {
             -webkit-appearance: none;
-            appearance: none;
             width: 16px;
             height: 16px;
             border-radius: 50%;
             background: #f0faff;
             border: 2px solid #3cff9a;
             box-shadow: 0 0 6px rgba(0,0,0,0.6);
-            cursor: pointer;
             margin-top: -6px;
-        }
-
-        .attr-range::-moz-range-thumb {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #f0faff;
-            border: 2px solid #3cff9a;
-            box-shadow: 0 0 6px rgba(0,0,0,0.6);
-            cursor: pointer;
         }
 
         .attr-scale {
@@ -143,9 +165,9 @@
             background: rgba(8, 18, 40, 0.95);
             border-radius: 14px;
             padding: 8px 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
             border: 1px solid rgba(60, 255, 154, 0.25);
             font-size: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
         }
 
         .formation-select {
@@ -185,6 +207,7 @@
         .attr-step-active {
             display: block;
         }
+
     </style>
 
     <div class="attr-wrapper">
@@ -196,60 +219,68 @@
                 <div id="step-dot-2" class="step-dot"></div>
             </div>
 
-            <!-- STEP 1: PHYSISCH -->
+            <!-- =============== STEP 1 =============== -->
             <div id="attr-step-1" class="attr-step attr-step-active">
 
                 <div class="attr-section">
                     <div class="attr-section-title">Physisch</div>
                     <div class="attr-grid">
 
+                        <!-- SPEED -->
                         <div class="attr-row">
                             <span class="attr-label">Speed (1–10)</span>
                             <input class="attr-input attr-range" type="range" name="speed" min="1" max="10"
-                                   value="{{ player.speed }}">
+                                   value="{{ player.speed }}" data-label="Speed">
                             <div class="attr-scale"><span>1</span><span>10</span></div>
                         </div>
 
+                        <!-- STAMINA -->
                         <div class="attr-row">
                             <span class="attr-label">Stamina / Ausdauer (1–10)</span>
                             <input class="attr-input attr-range" type="range" name="stamina" min="1" max="10"
-                                   value="{{ player.stamina }}">
+                                   value="{{ player.stamina }}" data-label="Ausdauer">
                             <div class="attr-scale"><span>1</span><span>10</span></div>
                         </div>
 
+                        <!-- STRENGTH -->
                         <div class="attr-row">
                             <span class="attr-label">Strength / Körper (1–10)</span>
                             <input class="attr-input attr-range" type="range" name="strength" min="1" max="10"
-                                   value="{{ player.strength }}">
+                                   value="{{ player.strength }}" data-label="Körperstärke">
                             <div class="attr-scale"><span>1</span><span>10</span></div>
                         </div>
 
+                        <!-- AGGRESSION -->
                         <div class="attr-row">
                             <span class="attr-label">Aggressivität (1–10)</span>
                             <input class="attr-input attr-range" type="range" name="aggression" min="1" max="10"
-                                   value="{{ player.aggression }}">
+                                   value="{{ player.aggression }}" data-label="Aggressivität">
                             <div class="attr-scale"><span>1</span><span>10</span></div>
                         </div>
 
+                        <!-- TACKLING -->
                         <div class="attr-row">
                             <span class="attr-label">Tackling / Verteidigung (1–10)</span>
                             <input class="attr-input attr-range" type="range" name="tackling" min="1" max="10"
-                                   value="{{ player.tackling }}">
+                                   value="{{ player.tackling }}" data-label="Tackling">
                             <div class="attr-scale"><span>1</span><span>10</span></div>
                         </div>
 
+                        <!-- HEIGHT -->
                         <div class="attr-row">
                             <span class="attr-label">Größe (cm)</span>
                             <input class="attr-input" type="number" name="height_cm" min="120" max="220"
                                    value="{{ player.height_cm or '' }}">
                         </div>
 
+                        <!-- WEIGHT -->
                         <div class="attr-row">
                             <span class="attr-label">Gewicht (kg)</span>
                             <input class="attr-input" type="number" name="weight_kg" min="30" max="120"
                                    value="{{ player.weight_kg or '' }}">
                         </div>
 
+                        <!-- FOOT -->
                         <div class="attr-row">
                             <span class="attr-label">Starker Fuß</span>
                             <input class="attr-input attr-range" type="range"
@@ -276,59 +307,66 @@
                 </div>
             </div>
 
-            <!-- STEP 2: TECHNIK & SPIELVERSTÄNDNIS + FORMATION -->
+            <!-- =============== STEP 2 =============== -->
             <div id="attr-step-2" class="attr-step">
 
                 <div class="attr-section">
                     <div class="attr-section-title">Technik &amp; Spielverständnis</div>
                     <div class="attr-grid">
 
+                        <!-- FIRST TOUCH -->
                         <div class="attr-row">
                             <span class="attr-label">Ballkontrolle / First Touch (1–10)</span>
                             <input class="attr-input attr-range" type="range" name="first_touch" min="1" max="10"
-                                   value="{{ player.first_touch }}">
+                                   value="{{ player.first_touch }}" data-label="Ballkontrolle">
                             <div class="attr-scale"><span>1</span><span>10</span></div>
                         </div>
 
+                        <!-- DRIBBLING -->
                         <div class="attr-row">
                             <span class="attr-label">Dribbling (1–10)</span>
                             <input class="attr-input attr-range" type="range" name="dribbling" min="1" max="10"
-                                   value="{{ player.dribbling }}">
+                                   value="{{ player.dribbling }}" data-label="Dribbling">
                             <div class="attr-scale"><span>1</span><span>10</span></div>
                         </div>
 
+                        <!-- SHORT PASSING -->
                         <div class="attr-row">
                             <span class="attr-label">Short Passing (1–10)</span>
                             <input class="attr-input attr-range" type="range" name="short_passing" min="1" max="10"
-                                   value="{{ player.short_passing }}">
+                                   value="{{ player.short_passing }}" data-label="Kurzpassspiel">
                             <div class="attr-scale"><span>1</span><span>10</span></div>
                         </div>
 
+                        <!-- LONG PASSING -->
                         <div class="attr-row">
                             <span class="attr-label">Long Passing (1–10)</span>
                             <input class="attr-input attr-range" type="range" name="long_passing" min="1" max="10"
-                                   value="{{ player.long_passing }}">
+                                   value="{{ player.long_passing }}" data-label="Langpassspiel">
                             <div class="attr-scale"><span>1</span><span>10</span></div>
                         </div>
 
+                        <!-- FINISHING -->
                         <div class="attr-row">
                             <span class="attr-label">Finishing / Abschluss (1–10)</span>
                             <input class="attr-input attr-range" type="range" name="finishing" min="1" max="10"
-                                   value="{{ player.finishing }}">
+                                   value="{{ player.finishing }}" data-label="Abschluss">
                             <div class="attr-scale"><span>1</span><span>10</span></div>
                         </div>
 
+                        <!-- SHOT POWER -->
                         <div class="attr-row">
                             <span class="attr-label">Shot Power / Schusskraft (1–10)</span>
                             <input class="attr-input attr-range" type="range" name="shooting_power" min="1" max="10"
-                                   value="{{ player.shooting_power }}">
+                                   value="{{ player.shooting_power }}" data-label="Schusskraft">
                             <div class="attr-scale"><span>1</span><span>10</span></div>
                         </div>
 
+                        <!-- DECISION MAKING -->
                         <div class="attr-row">
                             <span class="attr-label">Decision Making / Spielintelligenz (1–10)</span>
                             <input class="attr-input attr-range" type="range" name="decision_making" min="1" max="10"
-                                   value="{{ player.decision_making }}">
+                                   value="{{ player.decision_making }}" data-label="Spielintelligenz">
                             <div class="attr-scale"><span>1</span><span>10</span></div>
                         </div>
 
@@ -336,7 +374,7 @@
                 </div>
 
                 <div class="formation-box">
-                    <div style="font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em;">
+                    <div style="font-weight: 600; font-size: 11px; text-transform: uppercase;">
                         Formation
                     </div>
                     <div style="margin-top: 4px; font-size: 11px; opacity: 0.85;">
@@ -379,14 +417,17 @@
 
 </div>
 
+<!-- ================= LIVE SLIDER DISPLAY SCRIPT ================= -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+
+    /* ---------- STEP SWITCHING ----------- */
+
     const step1 = document.getElementById('attr-step-1');
     const step2 = document.getElementById('attr-step-2');
     const dot1 = document.getElementById('step-dot-1');
     const dot2 = document.getElementById('step-dot-2');
     const btnNext = document.getElementById('btn-next-step');
-    const btnPrev = document.getElementById('btn-prev-step');
 
     function showStep(step) {
         if (step === 1) {
@@ -402,30 +443,41 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    if (btnNext) {
-        btnNext.addEventListener('click', function () {
-            showStep(2);
-        });
-    }
-    if (btnPrev) {
-        btnPrev.addEventListener('click', function () {
-            showStep(1);
-        });
-    }
+    if (btnNext) btnNext.addEventListener('click', () => showStep(2));
+
+    /* ---------- PREFERRED FOOT LIVE UPDATE ----------- */
 
     const footSlider = document.getElementById('preferred_foot_slider');
     const footLabel = document.getElementById('foot_label');
+
     if (footSlider && footLabel) {
-        const updateFoot = () => {
-            if (footSlider.value === '0') {
-                footLabel.textContent = 'Links';
-            } else {
-                footLabel.textContent = 'Rechts';
-            }
-        };
-        footSlider.addEventListener('input', updateFoot);
-        updateFoot();
+        footSlider.addEventListener('input', () => {
+            footLabel.textContent = (footSlider.value === '0') ? 'Links' : 'Rechts';
+        });
     }
+
+    /* ---------- GLOBAL LIVE VALUE DISPLAY ----------- */
+
+    const displayLabel = document.getElementById('current-attr-label');
+    const displayValue = document.getElementById('current-attr-value');
+    const sliders = document.querySelectorAll('.attr-range');
+
+    function updateDisplay(slider) {
+        const label = slider.dataset.label || slider.name || "Attribut";
+        displayLabel.textContent = label;
+        displayValue.textContent = slider.value;
+    }
+
+    sliders.forEach(slider => {
+        slider.addEventListener('input', () => updateDisplay(slider));
+        slider.addEventListener('focus', () => updateDisplay(slider));
+    });
+
+    // Initialize with the first slider
+    if (sliders.length > 0) {
+        updateDisplay(sliders[0]);
+    }
+
 });
 </script>
 
