@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, send_file
 import os
 
-
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
@@ -42,7 +41,6 @@ def get_position_label_for_formation(code: str, formation: str) -> str:
             return "Rechter Flügelstürmer"
         if code == "CF":
             return "Zentrale Spitze"
-        # Rest: Basislabel
 
     if formation == "4-2-3-1":
         if code in ("LM", "LW"):
@@ -231,6 +229,8 @@ FORMATION_ALLOWED = {
 }
 
 POSITION_SIMILAR = {
+    "LB":  ["LB", "LWB", "CB"],
+    "RB":  ["RB", "RWB", "CB"],
     "CM":  ["CM", "CDM", "CAM"],
     "CDM": ["CDM", "CM", "CB"],
     "CAM": ["CAM", "CF", "CM"],
@@ -249,6 +249,31 @@ POSITION_SIMILAR = {
 }
 
 
+def get_highlight_code_for_formation(best_code: str, formation: str) -> str:
+    """
+    Nimmt die beste KI-Position (z.B. RW) und liefert einen code_key zurück,
+    der in den Slots der gewählten Formation tatsächlich vorkommt.
+    So ist sichergestellt, dass IMMER ein Kreis auf dem Feld gehighlightet wird.
+    """
+    formation_def = FORMATION_SLOTS.get(formation, FORMATION_SLOTS["4-3-3"])
+    slot_codes = {slot["code_key"] for slot in formation_def}
+
+    # 1) Direkte Übereinstimmung
+    if best_code in slot_codes:
+        return best_code
+
+    # 2) Ähnliche Positionen ausprobieren
+    for candidate in POSITION_SIMILAR.get(best_code, []):
+        if candidate in slot_codes:
+            return candidate
+
+    # 3) Stürmer-Varianten auf ST mappen
+    striker_aliases = {"CF", "LF", "RF", "LS", "RS"}
+    if best_code in striker_aliases and "ST" in slot_codes:
+        return "ST"
+
+    # 4) Letzter Fallback
+    return next(iter(slot_codes)) if slot_codes else best_code
 
 
 def normalize_for_formation(code: str) -> str:
@@ -260,8 +285,9 @@ def normalize_for_formation(code: str) -> str:
     if code in ("CF",):
         return "ST"
     if code in ("CDM", "CAM"):
-        return code  # CDM & CAM bleiben für 4-2-3-1 Slots
+        return code  # CDM & CAM bleiben
     return code
+
 
 app = Flask(__name__)
 app.secret_key = "change-me-later"
@@ -358,19 +384,13 @@ class Training(db.Model):
     coach = db.relationship("Coach", backref="trainings")
 
 
-# ➜ JETZT, wo alle Models bekannt sind, Tabellen anlegen:
 with app.app_context():
     db.create_all()
 
 
-# Optional, aber hilfreich zum Testen:
 @app.route("/init-db")
 def init_db():
     db.create_all()
-    return "DB initialized"
-
-
-
     return "DB initialized"
 
 
@@ -465,6 +485,7 @@ def find_training_from_excel(age_group, focus, duration, players_count, physical
 def home():
     return render_template("splash.html")
 
+
 @app.route("/start")
 def start():
     return render_template("home.html")
@@ -508,28 +529,24 @@ def choose_physical():
     return render_template("physical.html", physical=physical)
 
 
-
 @app.route("/players-count", methods=["GET", "POST"])
 def choose_players():
     if request.method == "POST":
         players_count = request.form.get("players")
         session["players"] = players_count
 
-        # after players → go to AI teaser
         return redirect(url_for("ai_wishes_teaser"))
 
     players_count = session.get("players", 16)
     return render_template("players.html", players=players_count)
 
+
 @app.route("/ai-wishes", methods=["GET", "POST"])
 def ai_wishes_teaser():
-    # Dieser Screen ist nur ein Teaser für KI-Trainings,
-    # das Feature ist (noch) nicht verfügbar.
     if request.method == "POST":
-        # Trainer klickt auf "Weiter ohne KI" → normal zur Summary
         return redirect(url_for("auth_choice"))
-
     return render_template("ai_wishes_teaser.html")
+
 
 @app.route("/install")
 def install_pwa():
@@ -546,46 +563,9 @@ def summary():
 
     save_message = None
 
-    # ---------------------------------------------------------
-    # SPEICHERN DEAKTIVIERT (MVP)
-    # ---------------------------------------------------------
     if request.method == "POST":
-        # Speichern ist ausgeschaltet. Wenn du es später aktivieren willst,
-        # einfach den Block unten wieder einkommentieren.
+        # Speichern ist aktuell deaktiviert
         pass
-
-        """
-        if not session.get("coach_id"):
-            return redirect(url_for("auth_choice"))
-
-        training_name = (request.form.get("training_name") or "").strip()
-        if not training_name:
-            training_name = "Unbenanntes Training"
-
-        try:
-            duration_int = int(duration) if duration is not None else None
-        except (TypeError, ValueError):
-            duration_int = None
-
-        try:
-            players_int = int(players_count) if players_count is not None else None
-        except (TypeError, ValueError):
-            players_int = None
-
-        training = Training(
-            coach_id=session["coach_id"],
-            name=training_name,
-            age_group=age_group,
-            focus=focus,
-            duration=duration_int,
-            players=players_int,
-            physical=physical,
-        )
-        db.session.add(training)
-        db.session.commit()
-
-        save_message = "Training wurde gespeichert."
-        """
 
     trainings = find_training_from_excel(
         age_group=age_group,
@@ -605,8 +585,6 @@ def summary():
         trainings=trainings,
         save_message=save_message,
     )
-
-
 
 
 @app.route("/auth", methods=["GET"])
@@ -648,6 +626,9 @@ def register():
                 session["coach_id"] = coach.id
                 session["coach_name"] = coach.name
 
+                next_url = session.pop("next_url", None)
+                if next_url:
+                    return redirect(next_url)
                 return redirect(url_for("summary"))
 
     return render_template("register.html", message=message)
@@ -665,6 +646,10 @@ def login():
         if coach and coach.check_password(password):
             session["coach_id"] = coach.id
             session["coach_name"] = coach.name
+
+            next_url = session.pop("next_url", None)
+            if next_url:
+                return redirect(next_url)
             return redirect(url_for("summary"))
         else:
             message = "E-Mail oder Passwort falsch."
@@ -682,6 +667,7 @@ def logout():
 @app.route("/my-trainings")
 def my_trainings():
     if not session.get("coach_id"):
+        session["next_url"] = url_for("my_trainings")
         return redirect(url_for("auth_choice"))
 
     trainings = (
@@ -695,6 +681,7 @@ def my_trainings():
 @app.route("/training/<int:training_id>")
 def training_detail(training_id):
     if not session.get("coach_id"):
+        session["next_url"] = url_for("training_detail", training_id=training_id)
         return redirect(url_for("auth_choice"))
 
     training = Training.query.get_or_404(training_id)
@@ -748,15 +735,83 @@ def new_player():
     return render_template("player_new.html")
 
 
+@app.route("/players/<int:player_id>/suggest-position", methods=["POST"])
+def suggest_position(player_id):
+    # ✅ HIER Login erzwingen
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("select_formation", player_id=player_id)
+        return redirect(url_for("auth_choice"))
+
+    player = Player.query.get_or_404(player_id)
+
+    formation = request.form.get("formation", "4-3-3")
+
+    attrs_for_model = map_form_to_model_features({
+        "speed": player.speed,
+        "stamina": player.stamina,
+        "strength": player.strength,
+        "aggression": player.aggression,
+        "tackling": player.tackling,
+        "height_cm": player.height_cm or 180,
+        "weight_kg": player.weight_kg or 70,
+        "first_touch": player.first_touch,
+        "dribbling": player.dribbling,
+        "short_passing": player.short_passing,
+        "long_passing": player.long_passing,
+        "finishing": player.finishing,
+        "shooting_power": player.shooting_power,
+        "decision_making": player.decision_making,
+    })
+
+    # ML prediction
+    top3 = recommend_position_from_attributes(attrs_for_model)
+
+    top3_positions = []
+    for code, prob in top3:
+        top3_positions.append({
+            "code": code,
+            "label": get_position_label_for_formation(code, formation),
+            "percent": f"{prob * 100:.1f}%"
+        })
+
+    best_code, best_prob = top3[0]
+
+    formation_def = FORMATION_SLOTS.get(formation, FORMATION_SLOTS["4-3-3"])
+    highlight_code = get_highlight_code_for_formation(best_code, formation)
+    highlight_percent = f"{best_prob * 100:.1f}%"
+
+    return render_template(
+        "player_position_suggestion.html",
+        player=player,
+        formation=formation,
+        slots=formation_def,
+        highlight_code=highlight_code,
+        highlight_percent=highlight_percent,
+        top3_positions=top3_positions,
+    )
+
+
+@app.route("/players/<int:player_id>/formation", methods=["GET"])
+def select_formation(player_id):
+    # ✅ Auch HIER Login erzwingen
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("select_formation", player_id=player_id)
+        return redirect(url_for("auth_choice"))
+
+    player = Player.query.get_or_404(player_id)
+    formations = [
+        "4-3-3", "4-2-3-1", "4-4-2", "4-4-2-diamond",
+        "4-1-4-1", "4-3-1-2", "3-5-2", "3-4-3"
+    ]
+    return render_template("player_formation_select.html", player=player, formations=formations)
+
 
 @app.route("/players/<int:player_id>/attributes", methods=["GET", "POST"])
 def edit_player_attributes(player_id):
     player = Player.query.get_or_404(player_id)
 
     if request.method == "POST":
-        action = request.form.get("action", "save")
-
-        # physisch
+        # nur speichern
         player.speed = int(request.form.get("speed", player.speed))
         player.stamina = int(request.form.get("stamina", player.stamina))
         player.strength = int(request.form.get("strength", player.strength))
@@ -765,7 +820,6 @@ def edit_player_attributes(player_id):
         player.height_cm = int(request.form.get("height_cm") or 0)
         player.weight_kg = int(request.form.get("weight_kg") or 0)
 
-        # technisch
         player.first_touch = int(request.form.get("first_touch", player.first_touch))
         player.dribbling = int(request.form.get("dribbling", player.dribbling))
         player.short_passing = int(request.form.get("short_passing", player.short_passing))
@@ -774,7 +828,7 @@ def edit_player_attributes(player_id):
         player.shooting_power = int(request.form.get("shooting_power", player.shooting_power))
         player.decision_making = int(request.form.get("decision_making", player.decision_making))
 
-        # starker Fuß
+        # preferred foot
         pf_val = request.form.get("preferred_foot_slider")
         if pf_val == "0":
             player.preferred_foot = "Left"
@@ -785,104 +839,11 @@ def edit_player_attributes(player_id):
 
         db.session.commit()
 
-        if action == "suggest":
-            formation = request.form.get("formation") or "4-3-3"
+        # nach Speichern → Formation wählen (dort ggf. Login)
+        return redirect(url_for("select_formation", player_id=player.id))
 
-            # UI → Modell-Features (1–10)
-            attrs_for_model = map_form_to_model_features(request.form)
-
-            # ML-Aufruf
-            top3 = recommend_position_from_attributes(attrs_for_model)
-
-            # Top3 fürs Template aufbereiten
-            top3_positions = []
-            for code, prob in top3:
-                top3_positions.append({
-                    "code": code,
-                    "label": get_position_label_for_formation(code, formation),
-                    "percent": f"{prob * 100:.1f}%",
-                })
-
-            # Formation holen
-            formation_def = FORMATION_SLOTS.get(formation, FORMATION_SLOTS["4-3-3"])
-            allowed = FORMATION_ALLOWED.get(formation, FORMATION_ALLOWED["4-3-3"])
-
-            # Beste Position wählen, die zur Formation passt
-            best_code = None
-            best_prob = None
-            for code, prob in top3:
-                if code in allowed:
-                    best_code = code
-                    best_prob = prob
-                    break
-            if best_code is None:
-                best_code, best_prob = top3[0]
-
-            highlight_code = normalize_for_formation(best_code)
-            highlight_percent = f"{best_prob * 100:.1f}%"
-
-            return render_template(
-                "player_position_suggestion.html",
-                player=player,
-                formation=formation,
-                slots=formation_def,
-                highlight_code=highlight_code,
-                highlight_percent=highlight_percent,
-                top3_positions=top3_positions,
-            )
-        else:
-            # Nur speichern → zurück zur Übersicht
-            return redirect(url_for("list_players"))
-
-    # GET: nur die Attribute-Seite anzeigen
     return render_template("player_attributes.html", player=player)
 
-
-    # ---------- NEU: KI-Empfehlung für GET ----------
-    # Wir basteln die Eingabewerte für das ML-Modell aus dem Player-Objekt
-    attrs_for_model = {
-        # Du hast aktuell kein Alter & Gewicht im Player-Modell,
-        # darum neutrale Defaults (kannst du später erweitern)
-        "Age": 20,
-        "Weight (kg)": 70,
-        "Body Size (cm)": player.height_cm or 180,
-
-        "Sprint speed": player.speed,
-        "Stamina": player.stamina,
-        "Strength": player.strength,
-        "Tactical Awareness": player.decision_making,
-        "Ball control": player.first_touch,
-        "Dribbling": player.dribbling,
-        "FK Accuracy": 50,  # vorerst Dummy, bis du es im UI hast
-        "Finishing": player.finishing,
-        "Long passing": player.long_passing,
-        "Long shots": 50,   # Dummy
-        "Short passing": player.short_passing,
-        "Shot power": player.shooting_power,
-        "Tackling": player.tackling,
-    }
-
-    top3 = recommend_position_from_attributes(attrs_for_model)
-    # z.B. [("ST", 0.78), ("CF", 0.10), ("CM", 0.07)]
-
-    best_position_code, best_prob = top3[0]
-    best_position_label = NICE_POSITION_LABELS.get(best_position_code, best_position_code)
-
-    # Für die Anzeige im Template: alle 3 Vorschläge schön formatiert
-    top3_display = []
-    for code, prob in top3:
-        label = NICE_POSITION_LABELS.get(code, code)
-        top3_display.append((label, f"{prob*100:.1f}%"))
-
-    return render_template(
-        "player_attributes.html",
-        player=player,
-        best_position_label=best_position_label,
-        top3_positions=top3_display,
-    )
-
-import os
-from flask import send_file, request
 
 @app.route("/_admin/download-db")
 def download_db():
@@ -895,7 +856,6 @@ def download_db():
     if token != expected:
         return "Forbidden", 403
 
-    # Get actual sqlite path from SQLAlchemy
     db_path = db.engine.url.database  # e.g. "/app/trainer.db" or "trainer.db"
 
     if not db_path:
@@ -907,9 +867,6 @@ def download_db():
     return send_file(db_path, as_attachment=True)
 
 
-
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-

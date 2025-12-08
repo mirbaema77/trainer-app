@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="attr-page">
+
+    <div class="attr-header">
+        <h1>
+            Formation wählen<br>
+            <span class="player-name">{{ player.full_name }}</span>
+        </h1>
+    </div>
+
+    <div class="attr-wrapper">
+
+        <form method="post" action="{{ url_for('suggest_position', player_id=player.id) }}" style="width: 100%;">
+
+            <div class="attr-section">
+                <div style="font-size: 13px; margin-bottom: 6px;">
+                    Wähle die Formation für die Positionsberechnung.
+                </div>
+
+                <select name="formation" class="attr-input" style="font-size: 14px;">
+                    {% for f in formations %}
+                        <option value="{{ f }}">{{ f }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="text-align: center; margin-top: 12px;">
+                <button type="submit" class="btn">
+                    Spielerposition vorschlagen
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}
