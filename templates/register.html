@@ -10,12 +10,21 @@
 
     <form method="post">
         <input type="text" name="name" placeholder="Name Vorname" required>
-        <input type="text" name="birthdate" placeholder="Geburtsdatum (TT.MM.JJJJ)" inputmode="numeric">
+
+        <input
+            type="text"
+            name="birthdate"
+            id="birthdate"
+            placeholder="Geburtsdatum (TT.MM.JJJJ)"
+            inputmode="numeric"
+            maxlength="10">
+
         <select name="gender" id="gender-select">
             <option value="">Geschlecht wählen</option>
             <option value="m">Männlich</option>
             <option value="w">Weiblich</option>
         </select>
+
         <input type="email" name="email" placeholder="E-Mail Adresse" required>
         <input type="password" name="password" placeholder="Passwort" required>
         <input type="text" name="teamname" placeholder="Teamname">
@@ -26,21 +35,46 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // --- Gender select color ---
     const gender = document.getElementById('gender-select');
-    if (!gender) return;
-
-    function updateColor() {
-        if (gender.value) {
-            gender.classList.add('has-value');
-        } else {
-            gender.classList.remove('has-value');
+    if (gender) {
+        function updateColor() {
+            if (gender.value) {
+                gender.classList.add('has-value');
+            } else {
+                gender.classList.remove('has-value');
+            }
         }
+        gender.addEventListener('change', updateColor);
+        updateColor();
     }
 
-    gender.addEventListener('change', updateColor);
-    updateColor();
+    // --- Birthdate auto-format: TT.MM.JJJJ ---
+    const birthInput = document.getElementById('birthdate');
+    if (birthInput) {
+        birthInput.addEventListener('input', function () {
+            // keep only digits, max 8
+            let v = birthInput.value.replace(/\D/g, '').slice(0, 8);
+
+            let day = v.slice(0, 2);
+            let month = v.slice(2, 4);
+            let year = v.slice(4, 8);
+
+            let formatted = '';
+            if (day) {
+                formatted = day;
+            }
+            if (month) {
+                formatted += '.' + month;
+            }
+            if (year) {
+                formatted += '.' + year;
+            }
+
+            birthInput.value = formatted;
+        });
+    }
 });
 </script>
-
 
 {% endblock %}
