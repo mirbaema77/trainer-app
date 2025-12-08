@@ -13,9 +13,6 @@
     <meta name="apple-mobile-web-app-title" content="Trainer App">
 
     <style>
-        html {
-            -webkit-text-size-adjust: 100%;
-        }
         body {
             margin: 0;
             font-family: Arial, sans-serif;
@@ -55,6 +52,14 @@
             font-weight: 700;
         }
 
+        /* Auth pages: move title a bit up and keep spacing clean */
+        .auth-title {
+            margin-top: -20px;   /* less negative than -50px → not so “squeezed” */
+            margin-bottom: 32px;
+        }
+
+
+
         .btn {
             width: 280px;
             padding: 14px 20px;
@@ -83,29 +88,6 @@
             font-size: 15px;
             box-sizing: border-box;
         }
-
-                /* iOS-friendly styling for login + register only */
-        .auth-form input[type="text"],
-        .auth-form input[type="email"],
-        .auth-form input[type="password"],
-        .auth-form input[type="date"],
-        .auth-form select {
-            width: 100%;
-            max-width: 360px;
-            padding: 14px 18px;
-            border-radius: 999px;
-            border: none;
-            margin-bottom: 16px;
-            background-color: #e5e5e5;
-            font-size: 16px;    /* avoids iPhone zoom / squashed placeholders */
-            line-height: 1.2;
-            box-sizing: border-box;
-        }
-
-        .auth-form input::placeholder {
-            color: #9ca0aa;
-        }
-
 
         .progress {
             display: flex;
