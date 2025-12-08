@@ -106,21 +106,34 @@
     margin: 0;
 }
 
-/* hide native thumb – our bubble is the visual handle */
+/* large invisible thumb so touch area is big on mobile */
 .attr-range::-webkit-slider-thumb,
 .attr-range-foot::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 0;
-    height: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: transparent;   /* invisible, bubble is visible */
     border: none;
 }
+
 .attr-range::-moz-range-thumb,
 .attr-range-foot::-moz-range-thumb {
-    width: 0;
-    height: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: transparent;
     border: none;
 }
+
+.attr-range,
+.attr-range-foot {
+    touch-action: pan-y;
+}
+
+
+
 
 /* 1–10 labels below slider */
 .attr-scale {
