@@ -10,8 +10,8 @@
 
     <form method="post">
         <input type="text" name="name" placeholder="Name Vorname" required>
-        <input type="date" name="birthdate" placeholder="Geburtsdatum">
-        <select name="gender">
+        <input type="text" name="birthdate" placeholder="Geburtsdatum (TT.MM.JJJJ)" inputmode="numeric">
+        <select name="gender" id="gender-select">
             <option value="">Geschlecht wählen</option>
             <option value="m">Männlich</option>
             <option value="w">Weiblich</option>
@@ -23,5 +23,24 @@
         <button class="btn" type="submit">Konto erstellen</button>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const gender = document.getElementById('gender-select');
+    if (!gender) return;
+
+    function updateColor() {
+        if (gender.value) {
+            gender.classList.add('has-value');
+        } else {
+            gender.classList.remove('has-value');
+        }
+    }
+
+    gender.addEventListener('change', updateColor);
+    updateColor();
+});
+</script>
+
 
 {% endblock %}

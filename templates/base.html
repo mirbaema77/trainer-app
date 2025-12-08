@@ -89,6 +89,26 @@
             box-sizing: border-box;
         }
 
+                /* Make gender select look like the other pill inputs on iOS */
+        #gender-select {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 280px;            /* same as other inputs */
+            padding: 14px 40px 14px 14px;
+            border-radius: 999px;
+            border: none;
+            background-color: #e5e5e5;
+            font-size: 16px;
+            box-sizing: border-box;
+            color: #9ca0aa;          /* placeholder color */
+        }
+
+        /* when user selected m / w, text becomes darker */
+        #gender-select.has-value {
+            color: #000000;
+        }
+
+
         .progress {
             display: flex;
             gap: 4px;
