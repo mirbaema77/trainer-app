@@ -737,8 +737,9 @@ def new_player():
 
 @app.route("/players/<int:player_id>/suggest-position", methods=["POST"])
 def suggest_position(player_id):
-    # ✅ HIER Login erzwingen
+    # ✅ HIER Login erzwingen – aber Formation-Seite selbst ist öffentlich
     if not session.get("coach_id"):
+        # Nach Login zurück auf die Formation-Seite dieses Spielers
         session["next_url"] = url_for("select_formation", player_id=player_id)
         return redirect(url_for("auth_choice"))
 
@@ -793,11 +794,7 @@ def suggest_position(player_id):
 
 @app.route("/players/<int:player_id>/formation", methods=["GET"])
 def select_formation(player_id):
-    # ✅ Auch HIER Login erzwingen
-    if not session.get("coach_id"):
-        session["next_url"] = url_for("select_formation", player_id=player_id)
-        return redirect(url_for("auth_choice"))
-
+    # ❌ KEIN Login-Check mehr – Formation-Seite ist öffentlich
     player = Player.query.get_or_404(player_id)
     formations = [
         "4-3-3", "4-2-3-1", "4-4-2", "4-4-2-diamond",
@@ -839,7 +836,7 @@ def edit_player_attributes(player_id):
 
         db.session.commit()
 
-        # nach Speichern → Formation wählen (dort ggf. Login)
+        # nach Speichern → Formation wählen (Formation-Seite öffentlich)
         return redirect(url_for("select_formation", player_id=player.id))
 
     return render_template("player_attributes.html", player=player)
