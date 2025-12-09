@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, send_file
 import os
+import secrets  # for session-based player isolation
 
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -240,11 +241,44 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
 
+def get_or_create_player_session_key() -> str:
+    """Unique key per browser session to separate players without login."""
+    key = session.get("player_session_key")
+    if not key:
+        key = secrets.token_hex(16)
+        session["player_session_key"] = key
+    return key
+
+
+def log_event(action: str):
+    """Speichert eine einfache Event-Zeile in der DB."""
+    try:
+        coach_id = session.get("coach_id")
+    except RuntimeError:
+        coach_id = None
+
+    session_key = session.get("player_session_key")
+    path = request.path
+
+    ev = Event(
+        coach_id=coach_id,
+        session_key=session_key,
+        action=action,
+        path=path,
+    )
+    db.session.add(ev)
+    db.session.commit()
+
+
+
 class Player(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    # ⭐ NEW: owner coach
-    coach_id = db.Column(db.Integer, db.ForeignKey("coach.id"), nullable=False)
+    # owner coach (optional, for logged-in users)
+    coach_id = db.Column(db.Integer, db.ForeignKey("coach.id"), nullable=True)
+
+    # anonymous session owner (for guests / testers)
+    session_key = db.Column(db.String(64), index=True, nullable=True)
 
     # Basic info
     first_name = db.Column(db.String(50), nullable=False)
@@ -305,8 +339,8 @@ class Coach(db.Model):
     gender = db.Column(db.String(10))
     teamname = db.Column(db.String(100))
 
-    # ⭐ optional: backref from Player
     players = db.relationship("Player", backref="coach", lazy=True)
+    trainings = db.relationship("Training", backref="coach", lazy=True)
 
     def set_password(self, password: str):
         self.password_hash = generate_password_hash(password)
@@ -329,11 +363,22 @@ class Training(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    coach = db.relationship("Coach", backref="trainings")
 
+class Event(db.Model):
+    """Einfache Tracking-Tabelle für Coach-Aktionen."""
+    id = db.Column(db.Integer, primary_key=True)
+    coach_id = db.Column(db.Integer, db.ForeignKey("coach.id"), nullable=True)
+    session_key = db.Column(db.String(64), index=True, nullable=True)
+
+    action = db.Column(db.String(100), nullable=False)  # z.B. "created_player"
+    path = db.Column(db.String(200))                   # z.B. "/players/1/suggest-position"
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 with app.app_context():
     db.create_all()
+
+
 
 
 @app.route("/init-db")
@@ -439,6 +484,10 @@ def start():
     return render_template("home.html")
 
 
+# ------------------------------------------------------------
+# TRAINING FLOW
+# ------------------------------------------------------------
+
 @app.route("/training", methods=["GET", "POST"])
 def choose_age():
     if request.method == "POST":
@@ -491,7 +540,13 @@ def choose_players():
 @app.route("/ai-wishes", methods=["GET", "POST"])
 def ai_wishes_teaser():
     if request.method == "POST":
-        return redirect(url_for("auth_choice"))
+        # If NOT logged in → go to auth once, then back to summary
+        if not session.get("coach_id"):
+            session["next_url"] = url_for("summary")
+            return redirect(url_for("auth_choice"))
+        # If already logged in → directly to summary
+        return redirect(url_for("summary"))
+
     return render_template("ai_wishes_teaser.html")
 
 
@@ -511,6 +566,7 @@ def summary():
     save_message = None
 
     if request.method == "POST":
+        # saving trainings is not implemented yet
         pass
 
     trainings = find_training_from_excel(
@@ -532,6 +588,10 @@ def summary():
         save_message=save_message,
     )
 
+
+# ------------------------------------------------------------
+# AUTH
+# ------------------------------------------------------------
 
 @app.route("/auth", methods=["GET"])
 def auth_choice():
@@ -572,10 +632,21 @@ def register():
                 session["coach_id"] = coach.id
                 session["coach_name"] = coach.name
 
-                # 🔴 Ignore next_url for now to avoid 404
+                # claim all players created in this session
+                session_key = session.get("player_session_key")
+                if session_key:
+                    Player.query.filter_by(session_key=session_key, coach_id=None).update(
+                        {"coach_id": coach.id}
+                    )
+                    db.session.commit()
+
+                next_url = session.pop("next_url", None)
+                if next_url:
+                    return redirect(next_url)
                 return redirect(url_for("summary"))
 
     return render_template("register.html", message=message)
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -590,7 +661,17 @@ def login():
             session["coach_id"] = coach.id
             session["coach_name"] = coach.name
 
-            # 🔴 Ignore next_url for now to avoid 404
+            # claim all players created in this session
+            session_key = session.get("player_session_key")
+            if session_key:
+                Player.query.filter_by(session_key=session_key, coach_id=None).update(
+                    {"coach_id": coach.id}
+                )
+                db.session.commit()
+
+            next_url = session.pop("next_url", None)
+            if next_url:
+                return redirect(next_url)
             return redirect(url_for("summary"))
         else:
             message = "E-Mail oder Passwort falsch."
@@ -602,8 +683,13 @@ def login():
 def logout():
     session.pop("coach_id", None)
     session.pop("coach_name", None)
+    # keep player_session_key so they still see their guest players if desired
     return redirect(url_for("home"))
 
+
+# ------------------------------------------------------------
+# TRAININGS (require login)
+# ------------------------------------------------------------
 
 @app.route("/my-trainings")
 def my_trainings():
@@ -627,7 +713,6 @@ def training_detail(training_id):
 
     training = Training.query.get_or_404(training_id)
 
-    # ⭐ ensure training belongs to this coach
     if training.coach_id != session["coach_id"]:
         return "Not found", 404
 
@@ -646,28 +731,40 @@ def training_detail(training_id):
     )
 
 
+# ------------------------------------------------------------
+# PLAYERS & POSITIONS
+# ------------------------------------------------------------
+
 @app.route("/players")
 def list_players():
-    # ⭐ require login + show only own players
-    if not session.get("coach_id"):
-        session["next_url"] = url_for("list_players")
-        return redirect(url_for("auth_choice"))
+    # if logged in → show coach's players
+    if session.get("coach_id"):
+        players = (
+            Player.query
+            .filter_by(coach_id=session["coach_id"])
+            .order_by(Player.last_name, Player.first_name)
+            .all()
+        )
+    else:
+        # guest: show players only from this session
+        session_key = session.get("player_session_key")
+        if not session_key:
+            players = []
+        else:
+            players = (
+                Player.query
+                .filter_by(session_key=session_key)
+                .order_by(Player.last_name, Player.first_name)
+                .all()
+            )
 
-    all_players = (
-        Player.query
-        .filter_by(coach_id=session["coach_id"])
-        .order_by(Player.last_name, Player.first_name)
-        .all()
-    )
-    return render_template("players_list.html", players=all_players)
+    return render_template("players_list.html", players=players)
 
 
 @app.route("/players/new", methods=["GET", "POST"])
 def new_player():
-    # ⭐ require login to create players
-    if not session.get("coach_id"):
-        session["next_url"] = url_for("new_player")
-        return redirect(url_for("auth_choice"))
+    # NO login required; use session_key to separate testers
+    session_key = get_or_create_player_session_key()
 
     if request.method == "POST":
         first_name = request.form.get("first_name")
@@ -680,7 +777,8 @@ def new_player():
             height_cm = int(height_cm)
 
         player = Player(
-            coach_id=session["coach_id"],   # ⭐ owner
+            coach_id=session.get("coach_id"),  # may be None
+            session_key=session_key,
             first_name=first_name,
             last_name=last_name,
             email=email,
@@ -691,30 +789,44 @@ def new_player():
         db.session.add(player)
         db.session.commit()
 
+        log_event("created_player")
+
         return redirect(url_for("edit_player_attributes", player_id=player.id))
 
     return render_template("player_new.html")
 
 
-def _load_owned_player(player_id):
-    """⭐ helper: load player and ensure it belongs to logged-in coach."""
-    if not session.get("coach_id"):
-        return None
-
+def _load_player_for_current_user(player_id):
+    """
+    Load player that belongs either to:
+      - current coach, OR
+      - current session (for guests).
+    """
     player = Player.query.get_or_404(player_id)
-    if player.coach_id != session["coach_id"]:
-        return None
+
+    coach_id = session.get("coach_id")
+    session_key = session.get("player_session_key")
+
+    if coach_id:
+        if player.coach_id != coach_id:
+            return None
+    else:
+        if not session_key or player.session_key != session_key:
+            return None
+
     return player
 
 
 @app.route("/players/<int:player_id>/suggest-position", methods=["POST"])
 def suggest_position(player_id):
-    # ⭐ require login
+    # Here we WANT login
     if not session.get("coach_id"):
+        # ❗ nach Login zurück zur Formation-Seite,
+        # damit der Button erneut als POST gesendet werden kann
         session["next_url"] = url_for("select_formation", player_id=player_id)
         return redirect(url_for("auth_choice"))
 
-    player = _load_owned_player(player_id)
+    player = _load_player_for_current_user(player_id)
     if player is None:
         return "Not found", 404
 
@@ -753,6 +865,18 @@ def suggest_position(player_id):
     highlight_code = get_highlight_code_for_formation(best_code, formation)
     highlight_percent = f"{best_prob * 100:.1f}%"
 
+    log_event("used_position_ai")
+
+    return render_template(
+        "player_position_suggestion.html",
+        player=player,
+        formation=formation,
+        slots=formation_def,
+        highlight_code=highlight_code,
+        highlight_percent=highlight_percent,
+        top3_positions=top3_positions,
+    )
+
     return render_template(
         "player_position_suggestion.html",
         player=player,
@@ -766,12 +890,8 @@ def suggest_position(player_id):
 
 @app.route("/players/<int:player_id>/formation", methods=["GET"])
 def select_formation(player_id):
-    # ⭐ protect + ownership
-    if not session.get("coach_id"):
-        session["next_url"] = url_for("select_formation", player_id=player_id)
-        return redirect(url_for("auth_choice"))
-
-    player = _load_owned_player(player_id)
+    # formation selection is public (no login). Only ownership check.
+    player = _load_player_for_current_user(player_id)
     if player is None:
         return "Not found", 404
 
@@ -779,17 +899,14 @@ def select_formation(player_id):
         "4-3-3", "4-2-3-1", "4-4-2", "4-4-2-diamond",
         "4-1-4-1", "4-3-1-2", "3-5-2", "3-4-3"
     ]
+
     return render_template("player_formation_select.html", player=player, formations=formations)
 
 
 @app.route("/players/<int:player_id>/attributes", methods=["GET", "POST"])
 def edit_player_attributes(player_id):
-    # ⭐ protect + ownership
-    if not session.get("coach_id"):
-        session["next_url"] = url_for("edit_player_attributes", player_id=player_id)
-        return redirect(url_for("auth_choice"))
-
-    player = _load_owned_player(player_id)
+    # NO login required; just ownership via session/coach
+    player = _load_player_for_current_user(player_id)
     if player is None:
         return "Not found", 404
 
@@ -820,10 +937,16 @@ def edit_player_attributes(player_id):
 
         db.session.commit()
 
+        log_event("edited_player_attributes")
+
         return redirect(url_for("select_formation", player_id=player.id))
 
     return render_template("player_attributes.html", player=player)
 
+
+# ------------------------------------------------------------
+# ADMIN DOWNLOAD DB
+# ------------------------------------------------------------
 
 @app.route("/_admin/download-db")
 def download_db():
