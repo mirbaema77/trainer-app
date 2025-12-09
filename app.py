@@ -27,9 +27,6 @@ NICE_POSITION_LABELS = {
 
 
 def get_position_label_for_formation(code: str, formation: str) -> str:
-    """
-    Gibt ein menschenlesbares Label zurück, das Formation + KI-Position berücksichtigt.
-    """
     base = NICE_POSITION_LABELS.get(code, code)
 
     if formation == "4-3-3":
@@ -60,157 +57,114 @@ def get_position_label_for_formation(code: str, formation: str) -> str:
         if code in ("RM", "RW"):
             return "Rechtes Mittelfeld"
 
-    # Standard-Fallback:
     return base
 
 
 # ------------------------------------------------------------
-# FORMATION KONFIGURATION – SLOTS + POSITIONSAUSWAHL
+# FORMATION CONFIG
 # ------------------------------------------------------------
 
 FORMATION_SLOTS = {
-    # 4-3-3
     "4-3-3": [
         {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-433-gk"},
-
         {"id": "lb",  "code_key": "LB", "label": "LB", "css": "slot-433-lb"},
         {"id": "lcb", "code_key": "CB", "label": "CB", "css": "slot-433-lcb"},
         {"id": "rcb", "code_key": "CB", "label": "CB", "css": "slot-433-rcb"},
         {"id": "rb",  "code_key": "RB", "label": "RB", "css": "slot-433-rb"},
-
         {"id": "lcm", "code_key": "CM", "label": "CM", "css": "slot-433-lcm"},
         {"id": "cm",  "code_key": "CM", "label": "CM", "css": "slot-433-cm"},
         {"id": "rcm", "code_key": "CM", "label": "CM", "css": "slot-433-rcm"},
-
         {"id": "lw",  "code_key": "LW", "label": "LW", "css": "slot-433-lw"},
         {"id": "st",  "code_key": "ST", "label": "ST", "css": "slot-433-st"},
         {"id": "rw",  "code_key": "RW", "label": "RW", "css": "slot-433-rw"},
     ],
-
-    # 4-2-3-1
     "4-2-3-1": [
         {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-4231-gk"},
-
         {"id": "lb",  "code_key": "LB", "label": "LB", "css": "slot-4231-lb"},
         {"id": "lcb", "code_key": "CB", "label": "CB", "css": "slot-4231-lcb"},
         {"id": "rcb", "code_key": "CB", "label": "CB", "css": "slot-4231-rcb"},
         {"id": "rb",  "code_key": "RB", "label": "RB", "css": "slot-4231-rb"},
-
         {"id": "ldm", "code_key": "CDM", "label": "DM", "css": "slot-4231-ldm"},
         {"id": "rdm", "code_key": "CDM", "label": "DM", "css": "slot-4231-rdm"},
-
         {"id": "lam", "code_key": "LM",  "label": "LW",  "css": "slot-4231-lam"},
         {"id": "cam", "code_key": "CAM", "label": "CAM", "css": "slot-4231-cam"},
         {"id": "ram", "code_key": "RM",  "label": "RW",  "css": "slot-4231-ram"},
-
         {"id": "st",  "code_key": "ST", "label": "ST", "css": "slot-4231-st"},
     ],
-
-    # 4-4-2 (flat)
     "4-4-2": [
         {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-442-gk"},
-
         {"id": "lb",  "code_key": "LB", "label": "LB", "css": "slot-442-lb"},
         {"id": "lcb", "code_key": "CB", "label": "CB", "css": "slot-442-lcb"},
         {"id": "rcb", "code_key": "CB", "label": "CB", "css": "slot-442-rcb"},
         {"id": "rb",  "code_key": "RB", "label": "RB", "css": "slot-442-rb"},
-
         {"id": "lm",  "code_key": "LM", "label": "LM", "css": "slot-442-lm"},
         {"id": "lcm", "code_key": "CM", "label": "CM", "css": "slot-442-lcm"},
         {"id": "rcm", "code_key": "CM", "label": "CM", "css": "slot-442-rcm"},
         {"id": "rm",  "code_key": "RM", "label": "RM", "css": "slot-442-rm"},
-
         {"id": "lst", "code_key": "ST", "label": "ST", "css": "slot-442-lst"},
         {"id": "rst", "code_key": "ST", "label": "ST", "css": "slot-442-rst"},
     ],
-
-    # 4-4-2 Diamond
     "4-4-2-diamond": [
         {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-442-gk"},
-
         {"id": "lb",  "code_key": "LB", "label": "LB", "css": "slot-442-lb"},
         {"id": "lcb", "code_key": "CB", "label": "CB", "css": "slot-442-lcb"},
         {"id": "rcb", "code_key": "CB", "label": "CB", "css": "slot-442-rcb"},
         {"id": "rb",  "code_key": "RB", "label": "RB", "css": "slot-442-rb"},
-
         {"id": "cdm", "code_key": "CDM", "label": "CDM", "css": "slot-442-lcm"},
         {"id": "lcm", "code_key": "CM",  "label": "CM",  "css": "slot-442-lm"},
         {"id": "rcm", "code_key": "CM",  "label": "CM",  "css": "slot-442-rm"},
         {"id": "cam", "code_key": "CAM", "label": "CAM", "css": "slot-442-rcm"},
-
         {"id": "lst", "code_key": "ST", "label": "ST", "css": "slot-442-lst"},
         {"id": "rst", "code_key": "ST", "label": "ST", "css": "slot-442-rst"},
     ],
-
-    # 4-1-4-1
     "4-1-4-1": [
         {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-4231-gk"},
-
         {"id": "lb",  "code_key": "LB", "label": "LB", "css": "slot-4231-lb"},
         {"id": "lcb", "code_key": "CB", "label": "CB", "css": "slot-4231-lcb"},
         {"id": "rcb", "code_key": "CB", "label": "CB", "css": "slot-4231-rcb"},
         {"id": "rb",  "code_key": "RB", "label": "RB", "css": "slot-4231-rb"},
-
         {"id": "cdm", "code_key": "CDM", "label": "CDM", "css": "slot-4231-ldm"},
-
         {"id": "lam", "code_key": "LM",  "label": "LM",  "css": "slot-4231-lam"},
         {"id": "lcm", "code_key": "CM",  "label": "CM",  "css": "slot-4231-cam"},
         {"id": "rcm", "code_key": "CM",  "label": "CM",  "css": "slot-4231-ram"},
         {"id": "ram", "code_key": "RM",  "label": "RM",  "css": "slot-4231-ram"},
-
         {"id": "st",  "code_key": "ST", "label": "ST", "css": "slot-4231-st"},
     ],
-
-    # 4-3-1-2
     "4-3-1-2": [
         {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-433-gk"},
-
         {"id": "lb",  "code_key": "LB", "label": "LB", "css": "slot-433-lb"},
         {"id": "lcb", "code_key": "CB", "label": "CB", "css": "slot-433-lcb"},
         {"id": "rcb", "code_key": "CB", "label": "CB", "css": "slot-433-rcb"},
         {"id": "rb",  "code_key": "RB", "label": "RB", "css": "slot-433-rb"},
-
         {"id": "lcm", "code_key": "CM",  "label": "CM",  "css": "slot-433-lcm"},
         {"id": "cm",  "code_key": "CM",  "label": "CM",  "css": "slot-433-cm"},
         {"id": "rcm", "code_key": "CM",  "label": "CM",  "css": "slot-433-rcm"},
-
         {"id": "cam", "code_key": "CAM", "label": "CAM", "css": "slot-4231-cam"},
-
         {"id": "lst", "code_key": "ST", "label": "ST", "css": "slot-442-lst"},
         {"id": "rst", "code_key": "ST", "label": "ST", "css": "slot-442-rst"},
     ],
-
-    # 3-5-2
     "3-5-2": [
         {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-352-gk"},
-
         {"id": "lcb", "code_key": "CB", "label": "CB", "css": "slot-352-lcb"},
         {"id": "cb",  "code_key": "CB", "label": "CB", "css": "slot-352-cb"},
         {"id": "rcb", "code_key": "CB", "label": "CB", "css": "slot-352-rcb"},
-
         {"id": "lwb", "code_key": "LWB", "label": "LWB", "css": "slot-352-lwb"},
         {"id": "lcm", "code_key": "CM",  "label": "CM",  "css": "slot-352-lcm"},
         {"id": "cm",  "code_key": "CM",  "label": "CM",  "css": "slot-352-cm"},
         {"id": "rcm", "code_key": "CM",  "label": "CM",  "css": "slot-352-rcm"},
         {"id": "rwb", "code_key": "RWB", "label": "RWB", "css": "slot-352-rwb"},
-
         {"id": "lst", "code_key": "ST", "label": "ST", "css": "slot-352-lst"},
         {"id": "rst", "code_key": "ST", "label": "ST", "css": "slot-352-rst"},
     ],
-
-    # 3-4-3
     "3-4-3": [
         {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-343-gk"},
-
         {"id": "lcb", "code_key": "CB", "label": "CB", "css": "slot-343-lcb"},
         {"id": "cb",  "code_key": "CB", "label": "CB", "css": "slot-343-cb"},
         {"id": "rcb", "code_key": "CB", "label": "CB", "css": "slot-343-rcb"},
-
         {"id": "lm",  "code_key": "LM",  "label": "LM",  "css": "slot-343-lm"},
         {"id": "lcm", "code_key": "CM",  "label": "CM",  "css": "slot-343-lcm"},
         {"id": "rcm", "code_key": "CM",  "label": "CM",  "css": "slot-343-rcm"},
         {"id": "rm",  "code_key": "RM",  "label": "RM",  "css": "slot-343-rm"},
-
         {"id": "lw",  "code_key": "LW",  "label": "LW",  "css": "slot-343-lw"},
         {"id": "st",  "code_key": "ST",  "label": "ST",  "css": "slot-343-st"},
         {"id": "rw",  "code_key": "RW",  "label": "RW",  "css": "slot-343-rw"},
@@ -234,12 +188,10 @@ POSITION_SIMILAR = {
     "CM":  ["CM", "CDM", "CAM"],
     "CDM": ["CDM", "CM", "CB"],
     "CAM": ["CAM", "CF", "CM"],
-
     "LM":  ["LM", "LW"],
     "RM":  ["RM", "RW"],
     "LW":  ["LW", "LM"],
     "RW":  ["RW", "RM"],
-
     "CF":  ["CF", "ST", "CAM"],
     "ST":  ["ST", "CF", "LS", "RS"],
     "LS":  ["LS", "ST", "CF"],
@@ -250,34 +202,24 @@ POSITION_SIMILAR = {
 
 
 def get_highlight_code_for_formation(best_code: str, formation: str) -> str:
-    """
-    Nimmt die beste KI-Position (z.B. RW) und liefert einen code_key zurück,
-    der in den Slots der gewählten Formation tatsächlich vorkommt.
-    So ist sichergestellt, dass IMMER ein Kreis auf dem Feld gehighlightet wird.
-    """
     formation_def = FORMATION_SLOTS.get(formation, FORMATION_SLOTS["4-3-3"])
     slot_codes = {slot["code_key"] for slot in formation_def}
 
-    # 1) Direkte Übereinstimmung
     if best_code in slot_codes:
         return best_code
 
-    # 2) Ähnliche Positionen ausprobieren
     for candidate in POSITION_SIMILAR.get(best_code, []):
         if candidate in slot_codes:
             return candidate
 
-    # 3) Stürmer-Varianten auf ST mappen
     striker_aliases = {"CF", "LF", "RF", "LS", "RS"}
     if best_code in striker_aliases and "ST" in slot_codes:
         return "ST"
 
-    # 4) Letzter Fallback
     return next(iter(slot_codes)) if slot_codes else best_code
 
 
 def normalize_for_formation(code: str) -> str:
-    """Mappt KI-Labels auf Formation-Slots (z.B. LW -> LM, CF -> ST)."""
     if code in ("LW",):
         return "LM"
     if code in ("RW",):
@@ -285,7 +227,7 @@ def normalize_for_formation(code: str) -> str:
     if code in ("CF",):
         return "ST"
     if code in ("CDM", "CAM"):
-        return code  # CDM & CAM bleiben
+        return code
     return code
 
 
@@ -300,6 +242,9 @@ db = SQLAlchemy(app)
 
 class Player(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+
+    # ⭐ NEW: owner coach
+    coach_id = db.Column(db.Integer, db.ForeignKey("coach.id"), nullable=False)
 
     # Basic info
     first_name = db.Column(db.String(50), nullable=False)
@@ -359,6 +304,9 @@ class Coach(db.Model):
     birthdate = db.Column(db.String(20))
     gender = db.Column(db.String(10))
     teamname = db.Column(db.String(100))
+
+    # ⭐ optional: backref from Player
+    players = db.relationship("Player", backref="coach", lazy=True)
 
     def set_password(self, password: str):
         self.password_hash = generate_password_hash(password)
@@ -534,7 +482,6 @@ def choose_players():
     if request.method == "POST":
         players_count = request.form.get("players")
         session["players"] = players_count
-
         return redirect(url_for("ai_wishes_teaser"))
 
     players_count = session.get("players", 16)
@@ -564,7 +511,6 @@ def summary():
     save_message = None
 
     if request.method == "POST":
-        # Speichern ist aktuell deaktiviert
         pass
 
     trainings = find_training_from_excel(
@@ -626,13 +572,10 @@ def register():
                 session["coach_id"] = coach.id
                 session["coach_name"] = coach.name
 
-                next_url = session.pop("next_url", None)
-                if next_url:
-                    return redirect(next_url)
+                # 🔴 Ignore next_url for now to avoid 404
                 return redirect(url_for("summary"))
 
     return render_template("register.html", message=message)
-
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -647,9 +590,7 @@ def login():
             session["coach_id"] = coach.id
             session["coach_name"] = coach.name
 
-            next_url = session.pop("next_url", None)
-            if next_url:
-                return redirect(next_url)
+            # 🔴 Ignore next_url for now to avoid 404
             return redirect(url_for("summary"))
         else:
             message = "E-Mail oder Passwort falsch."
@@ -686,6 +627,10 @@ def training_detail(training_id):
 
     training = Training.query.get_or_404(training_id)
 
+    # ⭐ ensure training belongs to this coach
+    if training.coach_id != session["coach_id"]:
+        return "Not found", 404
+
     trainings = find_training_from_excel(
         age_group=training.age_group,
         focus=training.focus,
@@ -703,12 +648,27 @@ def training_detail(training_id):
 
 @app.route("/players")
 def list_players():
-    all_players = Player.query.order_by(Player.last_name, Player.first_name).all()
+    # ⭐ require login + show only own players
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("list_players")
+        return redirect(url_for("auth_choice"))
+
+    all_players = (
+        Player.query
+        .filter_by(coach_id=session["coach_id"])
+        .order_by(Player.last_name, Player.first_name)
+        .all()
+    )
     return render_template("players_list.html", players=all_players)
 
 
 @app.route("/players/new", methods=["GET", "POST"])
 def new_player():
+    # ⭐ require login to create players
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("new_player")
+        return redirect(url_for("auth_choice"))
+
     if request.method == "POST":
         first_name = request.form.get("first_name")
         last_name = request.form.get("last_name")
@@ -720,6 +680,7 @@ def new_player():
             height_cm = int(height_cm)
 
         player = Player(
+            coach_id=session["coach_id"],   # ⭐ owner
             first_name=first_name,
             last_name=last_name,
             email=email,
@@ -735,15 +696,27 @@ def new_player():
     return render_template("player_new.html")
 
 
+def _load_owned_player(player_id):
+    """⭐ helper: load player and ensure it belongs to logged-in coach."""
+    if not session.get("coach_id"):
+        return None
+
+    player = Player.query.get_or_404(player_id)
+    if player.coach_id != session["coach_id"]:
+        return None
+    return player
+
+
 @app.route("/players/<int:player_id>/suggest-position", methods=["POST"])
 def suggest_position(player_id):
-    # ✅ HIER Login erzwingen – aber Formation-Seite selbst ist öffentlich
+    # ⭐ require login
     if not session.get("coach_id"):
-        # Nach Login zurück auf die Formation-Seite dieses Spielers
         session["next_url"] = url_for("select_formation", player_id=player_id)
         return redirect(url_for("auth_choice"))
 
-    player = Player.query.get_or_404(player_id)
+    player = _load_owned_player(player_id)
+    if player is None:
+        return "Not found", 404
 
     formation = request.form.get("formation", "4-3-3")
 
@@ -764,7 +737,6 @@ def suggest_position(player_id):
         "decision_making": player.decision_making,
     })
 
-    # ML prediction
     top3 = recommend_position_from_attributes(attrs_for_model)
 
     top3_positions = []
@@ -794,8 +766,15 @@ def suggest_position(player_id):
 
 @app.route("/players/<int:player_id>/formation", methods=["GET"])
 def select_formation(player_id):
-    # ❌ KEIN Login-Check mehr – Formation-Seite ist öffentlich
-    player = Player.query.get_or_404(player_id)
+    # ⭐ protect + ownership
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("select_formation", player_id=player_id)
+        return redirect(url_for("auth_choice"))
+
+    player = _load_owned_player(player_id)
+    if player is None:
+        return "Not found", 404
+
     formations = [
         "4-3-3", "4-2-3-1", "4-4-2", "4-4-2-diamond",
         "4-1-4-1", "4-3-1-2", "3-5-2", "3-4-3"
@@ -805,10 +784,16 @@ def select_formation(player_id):
 
 @app.route("/players/<int:player_id>/attributes", methods=["GET", "POST"])
 def edit_player_attributes(player_id):
-    player = Player.query.get_or_404(player_id)
+    # ⭐ protect + ownership
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("edit_player_attributes", player_id=player_id)
+        return redirect(url_for("auth_choice"))
+
+    player = _load_owned_player(player_id)
+    if player is None:
+        return "Not found", 404
 
     if request.method == "POST":
-        # nur speichern
         player.speed = int(request.form.get("speed", player.speed))
         player.stamina = int(request.form.get("stamina", player.stamina))
         player.strength = int(request.form.get("strength", player.strength))
@@ -825,7 +810,6 @@ def edit_player_attributes(player_id):
         player.shooting_power = int(request.form.get("shooting_power", player.shooting_power))
         player.decision_making = int(request.form.get("decision_making", player.decision_making))
 
-        # preferred foot
         pf_val = request.form.get("preferred_foot_slider")
         if pf_val == "0":
             player.preferred_foot = "Left"
@@ -836,7 +820,6 @@ def edit_player_attributes(player_id):
 
         db.session.commit()
 
-        # nach Speichern → Formation wählen (Formation-Seite öffentlich)
         return redirect(url_for("select_formation", player_id=player.id))
 
     return render_template("player_attributes.html", player=player)
@@ -853,7 +836,7 @@ def download_db():
     if token != expected:
         return "Forbidden", 403
 
-    db_path = db.engine.url.database  # e.g. "/app/trainer.db" or "trainer.db"
+    db_path = db.engine.url.database
 
     if not db_path:
         return "No sqlite database configured", 500
