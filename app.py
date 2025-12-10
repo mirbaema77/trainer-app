@@ -1,12 +1,15 @@
 from flask import Flask, render_template, request, redirect, url_for, session, send_file
 import os
-import secrets  # for session-based player isolation
+import smtplib
+from email.message import EmailMessage
 
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
 import pandas as pd
+
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 from ml_model import recommend_position_from_attributes, map_form_to_model_features
 
@@ -60,10 +63,6 @@ def get_position_label_for_formation(code: str, formation: str) -> str:
 
     return base
 
-
-# ------------------------------------------------------------
-# FORMATION CONFIG
-# ------------------------------------------------------------
 
 FORMATION_SLOTS = {
     "4-3-3": [
@@ -129,7 +128,7 @@ FORMATION_SLOTS = {
         {"id": "lcm", "code_key": "CM",  "label": "CM",  "css": "slot-4231-cam"},
         {"id": "rcm", "code_key": "CM",  "label": "CM",  "css": "slot-4231-ram"},
         {"id": "ram", "code_key": "RM",  "label": "RM",  "css": "slot-4231-ram"},
-        {"id": "st",  "code_key": "ST", "label": "ST", "css": "slot-4231-st"},
+        {"id": "st",  "code_key": "ST",  "label": "ST",  "css": "slot-4231-st"},
     ],
     "4-3-1-2": [
         {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-433-gk"},
@@ -141,8 +140,8 @@ FORMATION_SLOTS = {
         {"id": "cm",  "code_key": "CM",  "label": "CM",  "css": "slot-433-cm"},
         {"id": "rcm", "code_key": "CM",  "label": "CM",  "css": "slot-433-rcm"},
         {"id": "cam", "code_key": "CAM", "label": "CAM", "css": "slot-4231-cam"},
-        {"id": "lst", "code_key": "ST", "label": "ST", "css": "slot-442-lst"},
-        {"id": "rst", "code_key": "ST", "label": "ST", "css": "slot-442-rst"},
+        {"id": "lst", "code_key": "ST",  "label": "ST",  "css": "slot-442-lst"},
+        {"id": "rst", "code_key": "ST",  "label": "ST",  "css": "slot-442-rst"},
     ],
     "3-5-2": [
         {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-352-gk"},
@@ -154,8 +153,8 @@ FORMATION_SLOTS = {
         {"id": "cm",  "code_key": "CM",  "label": "CM",  "css": "slot-352-cm"},
         {"id": "rcm", "code_key": "CM",  "label": "CM",  "css": "slot-352-rcm"},
         {"id": "rwb", "code_key": "RWB", "label": "RWB", "css": "slot-352-rwb"},
-        {"id": "lst", "code_key": "ST", "label": "ST", "css": "slot-352-lst"},
-        {"id": "rst", "code_key": "ST", "label": "ST", "css": "slot-352-rst"},
+        {"id": "lst", "code_key": "ST",  "label": "ST",  "css": "slot-352-lst"},
+        {"id": "rst", "code_key": "ST",  "label": "ST",  "css": "slot-352-rst"},
     ],
     "3-4-3": [
         {"id": "gk",  "code_key": "GK", "label": "TW", "css": "slot-343-gk"},
@@ -241,59 +240,78 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
 
-def get_or_create_player_session_key() -> str:
-    """Unique key per browser session to separate players without login."""
-    key = session.get("player_session_key")
-    if not key:
-        key = secrets.token_hex(16)
-        session["player_session_key"] = key
-    return key
+def send_email(to_address: str, subject: str, body_text: str, body_html: str | None = None):
+    """
+    Versendet eine E-Mail über das Google SMTP-Relay.
+    Nutzt Umgebungsvariablen:
+      SMTP_SERVER, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, MAIL_FROM
+    """
+    if not to_address:
+        return
 
+    smtp_server = os.environ.get("SMTP_SERVER", "smtp-relay.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USERNAME")
+    smtp_pass = os.environ.get("SMTP_PASSWORD")
+    mail_from = os.environ.get("MAIL_FROM", smtp_user)
 
-def log_event(action: str):
-    """Speichert eine einfache Event-Zeile in der DB."""
+    if not (smtp_server and smtp_port and smtp_user and smtp_pass and mail_from):
+        print("Email not sent: SMTP config incomplete")
+        return
+
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = mail_from
+    msg["To"] = to_address
+    msg.set_content(body_text)
+
+    if body_html:
+        msg.add_alternative(body_html, subtype="html")
+
     try:
-        coach_id = session.get("coach_id")
-    except RuntimeError:
-        coach_id = None
+        with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+            print(f"Email sent to {to_address}")
+    except Exception as e:
+        print(f"Error sending email: {e}")
 
-    session_key = session.get("player_session_key")
-    path = request.path
 
-    ev = Event(
-        coach_id=coach_id,
-        session_key=session_key,
-        action=action,
-        path=path,
-    )
-    db.session.add(ev)
-    db.session.commit()
+def get_serializer():
+    return URLSafeTimedSerializer(app.secret_key)
 
+
+def generate_reset_token(coach_id: int) -> str:
+    s = get_serializer()
+    return s.dumps({"coach_id": coach_id})
+
+
+def verify_reset_token(token: str, max_age_seconds: int = 3600 * 24) -> int | None:
+    s = get_serializer()
+    try:
+        data = s.loads(token, max_age=max_age_seconds)
+        return int(data.get("coach_id"))
+    except (BadSignature, SignatureExpired, ValueError, TypeError):
+        return None
 
 
 class Player(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    # owner coach (optional, for logged-in users)
-    coach_id = db.Column(db.Integer, db.ForeignKey("coach.id"), nullable=True)
+    coach_id = db.Column(db.Integer, db.ForeignKey("coach.id"), nullable=False)
 
-    # anonymous session owner (for guests / testers)
-    session_key = db.Column(db.String(64), index=True, nullable=True)
-
-    # Basic info
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(120))
     phone = db.Column(db.String(50))
 
-    # Physical data
     height_cm = db.Column(db.Integer)
     weight_kg = db.Column(db.Integer)
     preferred_foot = db.Column(db.String(5))
 
     position = db.Column(db.String(50))
 
-    # Ratings ...
     speed = db.Column(db.Integer, default=5)
     stamina = db.Column(db.Integer, default=5)
     strength = db.Column(db.Integer, default=5)
@@ -364,21 +382,8 @@ class Training(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
-class Event(db.Model):
-    """Einfache Tracking-Tabelle für Coach-Aktionen."""
-    id = db.Column(db.Integer, primary_key=True)
-    coach_id = db.Column(db.Integer, db.ForeignKey("coach.id"), nullable=True)
-    session_key = db.Column(db.String(64), index=True, nullable=True)
-
-    action = db.Column(db.String(100), nullable=False)  # z.B. "created_player"
-    path = db.Column(db.String(200))                   # z.B. "/players/1/suggest-position"
-
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
 with app.app_context():
     db.create_all()
-
-
 
 
 @app.route("/init-db")
@@ -484,10 +489,6 @@ def start():
     return render_template("home.html")
 
 
-# ------------------------------------------------------------
-# TRAINING FLOW
-# ------------------------------------------------------------
-
 @app.route("/training", methods=["GET", "POST"])
 def choose_age():
     if request.method == "POST":
@@ -540,11 +541,9 @@ def choose_players():
 @app.route("/ai-wishes", methods=["GET", "POST"])
 def ai_wishes_teaser():
     if request.method == "POST":
-        # If NOT logged in → go to auth once, then back to summary
         if not session.get("coach_id"):
             session["next_url"] = url_for("summary")
             return redirect(url_for("auth_choice"))
-        # If already logged in → directly to summary
         return redirect(url_for("summary"))
 
     return render_template("ai_wishes_teaser.html")
@@ -565,10 +564,6 @@ def summary():
 
     save_message = None
 
-    if request.method == "POST":
-        # saving trainings is not implemented yet
-        pass
-
     trainings = find_training_from_excel(
         age_group=age_group,
         focus=focus,
@@ -588,10 +583,6 @@ def summary():
         save_message=save_message,
     )
 
-
-# ------------------------------------------------------------
-# AUTH
-# ------------------------------------------------------------
 
 @app.route("/auth", methods=["GET"])
 def auth_choice():
@@ -632,20 +623,86 @@ def register():
                 session["coach_id"] = coach.id
                 session["coach_name"] = coach.name
 
-                # claim all players created in this session
-                session_key = session.get("player_session_key")
-                if session_key:
-                    Player.query.filter_by(session_key=session_key, coach_id=None).update(
-                        {"coach_id": coach.id}
-                    )
-                    db.session.commit()
+                subject = "Willkommen in der Trainer App"
+                text_body = (
+                    f"Hallo {name},\n\n"
+                    "dein Trainer App Konto wurde erfolgreich erstellt.\n\n"
+                    f"E-Mail: {email}\n"
+                    f"Team: {teamname or '-'}\n\n"
+                    "Viel Erfolg beim Planen deiner Trainings!\n"
+                    "Dein Trainer App Team"
+                )
+                html_body = f"""
+                <p>Hallo {name},</p>
+                <p>dein <strong>Trainer App</strong> Konto wurde erfolgreich erstellt.</p>
+                <p>
+                  <strong>E-Mail:</strong> {email}<br>
+                  <strong>Team:</strong> {teamname or '-'}
+                </p>
+                <p>Viel Erfolg beim Planen deiner Trainings!<br>
+                Dein <strong>Trainer App</strong> Team</p>
+                """
+                send_email(email, subject, text_body, html_body)
 
-                next_url = session.pop("next_url", None)
-                if next_url:
-                    return redirect(next_url)
                 return redirect(url_for("summary"))
 
     return render_template("register.html", message=message)
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    info = None
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip()
+        if email:
+            coach = Coach.query.filter_by(email=email).first()
+            if coach:
+                token = generate_reset_token(coach.id)
+                reset_url = url_for("reset_password", token=token, _external=True)
+                subject = "Trainer App – Passwort zurücksetzen"
+                text_body = (
+                    f"Hallo {coach.name},\n\n"
+                    "du hast eine Zurücksetzung deines Passworts angefordert.\n"
+                    f"Klicke auf den folgenden Link, um ein neues Passwort zu vergeben:\n\n"
+                    f"{reset_url}\n\n"
+                    "Wenn du diese Anfrage nicht gestellt hast, kannst du diese E-Mail ignorieren.\n"
+                )
+                html_body = f"""
+                <p>Hallo {coach.name},</p>
+                <p>du hast eine Zurücksetzung deines Passworts angefordert.</p>
+                <p>
+                  Klicke auf den folgenden Link, um ein neues Passwort zu vergeben:<br>
+                  <a href="{reset_url}">{reset_url}</a>
+                </p>
+                <p>Wenn du diese Anfrage nicht gestellt hast, kannst du diese E-Mail ignorieren.</p>
+                """
+                send_email(email, subject, text_body, html_body)
+
+        info = "Wenn ein Konto mit dieser E-Mail existiert, wurde eine Nachricht versendet."
+    return render_template("forgot_password.html", info=info)
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    coach_id = verify_reset_token(token)
+    if not coach_id:
+        return render_template("reset_password_invalid.html")
+
+    coach = Coach.query.get_or_404(coach_id)
+
+    message = None
+    if request.method == "POST":
+        password = (request.form.get("password") or "").strip()
+        if not password:
+            message = "Bitte ein neues Passwort eingeben."
+        else:
+            coach.set_password(password)
+            db.session.commit()
+            session["coach_id"] = coach.id
+            session["coach_name"] = coach.name
+            return redirect(url_for("summary"))
+
+    return render_template("reset_password.html", message=message)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -660,18 +717,6 @@ def login():
         if coach and coach.check_password(password):
             session["coach_id"] = coach.id
             session["coach_name"] = coach.name
-
-            # claim all players created in this session
-            session_key = session.get("player_session_key")
-            if session_key:
-                Player.query.filter_by(session_key=session_key, coach_id=None).update(
-                    {"coach_id": coach.id}
-                )
-                db.session.commit()
-
-            next_url = session.pop("next_url", None)
-            if next_url:
-                return redirect(next_url)
             return redirect(url_for("summary"))
         else:
             message = "E-Mail oder Passwort falsch."
@@ -683,13 +728,8 @@ def login():
 def logout():
     session.pop("coach_id", None)
     session.pop("coach_name", None)
-    # keep player_session_key so they still see their guest players if desired
     return redirect(url_for("home"))
 
-
-# ------------------------------------------------------------
-# TRAININGS (require login)
-# ------------------------------------------------------------
 
 @app.route("/my-trainings")
 def my_trainings():
@@ -712,7 +752,6 @@ def training_detail(training_id):
         return redirect(url_for("auth_choice"))
 
     training = Training.query.get_or_404(training_id)
-
     if training.coach_id != session["coach_id"]:
         return "Not found", 404
 
@@ -731,40 +770,26 @@ def training_detail(training_id):
     )
 
 
-# ------------------------------------------------------------
-# PLAYERS & POSITIONS
-# ------------------------------------------------------------
-
 @app.route("/players")
 def list_players():
-    # if logged in → show coach's players
-    if session.get("coach_id"):
-        players = (
-            Player.query
-            .filter_by(coach_id=session["coach_id"])
-            .order_by(Player.last_name, Player.first_name)
-            .all()
-        )
-    else:
-        # guest: show players only from this session
-        session_key = session.get("player_session_key")
-        if not session_key:
-            players = []
-        else:
-            players = (
-                Player.query
-                .filter_by(session_key=session_key)
-                .order_by(Player.last_name, Player.first_name)
-                .all()
-            )
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("list_players")
+        return redirect(url_for("auth_choice"))
 
-    return render_template("players_list.html", players=players)
+    all_players = (
+        Player.query
+        .filter_by(coach_id=session["coach_id"])
+        .order_by(Player.last_name, Player.first_name)
+        .all()
+    )
+    return render_template("players_list.html", players=all_players)
 
 
 @app.route("/players/new", methods=["GET", "POST"])
 def new_player():
-    # NO login required; use session_key to separate testers
-    session_key = get_or_create_player_session_key()
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("new_player")
+        return redirect(url_for("auth_choice"))
 
     if request.method == "POST":
         first_name = request.form.get("first_name")
@@ -777,8 +802,7 @@ def new_player():
             height_cm = int(height_cm)
 
         player = Player(
-            coach_id=session.get("coach_id"),  # may be None
-            session_key=session_key,
+            coach_id=session["coach_id"],
             first_name=first_name,
             last_name=last_name,
             email=email,
@@ -789,44 +813,28 @@ def new_player():
         db.session.add(player)
         db.session.commit()
 
-        log_event("created_player")
-
         return redirect(url_for("edit_player_attributes", player_id=player.id))
 
     return render_template("player_new.html")
 
 
-def _load_player_for_current_user(player_id):
-    """
-    Load player that belongs either to:
-      - current coach, OR
-      - current session (for guests).
-    """
+def _load_owned_player(player_id):
+    if not session.get("coach_id"):
+        return None
+
     player = Player.query.get_or_404(player_id)
-
-    coach_id = session.get("coach_id")
-    session_key = session.get("player_session_key")
-
-    if coach_id:
-        if player.coach_id != coach_id:
-            return None
-    else:
-        if not session_key or player.session_key != session_key:
-            return None
-
+    if player.coach_id != session["coach_id"]:
+        return None
     return player
 
 
 @app.route("/players/<int:player_id>/suggest-position", methods=["POST"])
 def suggest_position(player_id):
-    # Here we WANT login
     if not session.get("coach_id"):
-        # ❗ nach Login zurück zur Formation-Seite,
-        # damit der Button erneut als POST gesendet werden kann
         session["next_url"] = url_for("select_formation", player_id=player_id)
         return redirect(url_for("auth_choice"))
 
-    player = _load_player_for_current_user(player_id)
+    player = _load_owned_player(player_id)
     if player is None:
         return "Not found", 404
 
@@ -865,18 +873,6 @@ def suggest_position(player_id):
     highlight_code = get_highlight_code_for_formation(best_code, formation)
     highlight_percent = f"{best_prob * 100:.1f}%"
 
-    log_event("used_position_ai")
-
-    return render_template(
-        "player_position_suggestion.html",
-        player=player,
-        formation=formation,
-        slots=formation_def,
-        highlight_code=highlight_code,
-        highlight_percent=highlight_percent,
-        top3_positions=top3_positions,
-    )
-
     return render_template(
         "player_position_suggestion.html",
         player=player,
@@ -890,10 +886,9 @@ def suggest_position(player_id):
 
 @app.route("/players/<int:player_id>/formation", methods=["GET"])
 def select_formation(player_id):
-    # formation selection is public (no login). Only ownership check.
-    player = _load_player_for_current_user(player_id)
+    player = _load_owned_player(player_id)
     if player is None:
-        return "Not found", 404
+        return redirect(url_for("auth_choice"))
 
     formations = [
         "4-3-3", "4-2-3-1", "4-4-2", "4-4-2-diamond",
@@ -905,8 +900,11 @@ def select_formation(player_id):
 
 @app.route("/players/<int:player_id>/attributes", methods=["GET", "POST"])
 def edit_player_attributes(player_id):
-    # NO login required; just ownership via session/coach
-    player = _load_player_for_current_user(player_id)
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("edit_player_attributes", player_id=player_id)
+        return redirect(url_for("auth_choice"))
+
+    player = _load_owned_player(player_id)
     if player is None:
         return "Not found", 404
 
@@ -937,16 +935,10 @@ def edit_player_attributes(player_id):
 
         db.session.commit()
 
-        log_event("edited_player_attributes")
-
         return redirect(url_for("select_formation", player_id=player.id))
 
     return render_template("player_attributes.html", player=player)
 
-
-# ------------------------------------------------------------
-# ADMIN DOWNLOAD DB
-# ------------------------------------------------------------
 
 @app.route("/_admin/download-db")
 def download_db():

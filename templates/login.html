@@ -2,7 +2,7 @@
 {% block content %}
 
 <div class="content">
-    <h1 class="auth-title">Einloggen</h1>
+    <h1>Einloggen</h1>
 
     {% if message %}
         <p style="color: #3cff9a; margin-bottom: 10px;"><strong>{{ message }}</strong></p>
@@ -13,6 +13,10 @@
         <input type="password" name="password" placeholder="Passwort" required>
         <button class="btn" type="submit">Einloggen</button>
     </form>
+
+    <a href="{{ url_for('forgot_password') }}" style="margin-top:8px; display:block; font-size:14px;">
+        Passwort vergessen?
+    </a>
 
     <a href="{{ url_for('register') }}">
         <button class="btn" type="button">Noch kein Konto? Registrieren</button>
