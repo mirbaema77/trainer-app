@@ -961,6 +961,21 @@ def download_db():
 
     return send_file(db_path, as_attachment=True)
 
+@app.route("/test-email")
+def test_email():
+    """Einfache Test-Mail senden."""
+    # Zieladresse aus URL ?to=... oder fallback auf SMTP_USERNAME
+    to_address = request.args.get("to") or os.environ.get("SMTP_USERNAME")
+    if not to_address:
+        return "No target email (use ?to=...)", 400
+
+    subject = "Trainer App – Testmail"
+    text_body = "Das ist eine Testmail aus deiner Trainer App."
+    html_body = "<p>Das ist eine <strong>Testmail</strong> aus deiner Trainer App.</p>"
+
+    send_email(to_address, subject, text_body, html_body)
+    return f"Testmail ausgelöst an: {to_address} (Details siehe Railway-Logs)"
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
