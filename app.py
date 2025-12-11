@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, send_file
 import os
-from email_utils import send_email, send_email_template
+from email_utils import send_email
 
 
 
@@ -614,15 +614,7 @@ def register():
                 Dein <strong>Noqe-Team</strong>
                 </p>
                 """
-                send_email_template(
-                    email,
-                    template_name="registration_welcome",
-                    merge_vars={
-                        "name": name,
-                        "email": email,
-                        "team": teamname or "-"
-                    }
-                )
+                send_email(email, subject, text_body, html_body)
 
                 return redirect(url_for("summary"))
 
