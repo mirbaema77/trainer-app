@@ -581,26 +581,40 @@ def register():
                 session["coach_id"] = coach.id
                 session["coach_name"] = coach.name
 
-                subject = "Willkommen in der Trainer App"
+                subject = "Willkommen bei Noqe"
                 text_body = (
                     f"Hallo {name},\n\n"
-                    "dein Trainer App Konto wurde erfolgreich erstellt.\n\n"
+                    "super, dass du jetzt Teil von Noqe bist! Dein Account wurde erfolgreich erstellt.\n\n"
                     f"E-Mail: {email}\n"
                     f"Team: {teamname or '-'}\n\n"
-                    "Viel Erfolg beim Planen deiner Trainings!\n"
-                    "Dein Trainer App Team"
+                    "Noqe unterstützt dich als Trainer*in in deinem gesamten Alltag – ob Planung, Organisation "
+                    "oder Assistenz im Training. Wir freuen uns, dich auf diesem Weg zu begleiten.\n\n"
+                    "Viel Erfolg und Spaß mit Noqe!\n"
+                    "Dein Noqe-Team"
                 )
+
                 html_body = f"""
                 <p>Hallo {name},</p>
-                <p>dein <strong>Trainer App</strong> Konto wurde erfolgreich erstellt.</p>
+
+                <p>super, dass du jetzt Teil von <strong>Noqe</strong> bist! Dein Konto wurde erfolgreich erstellt.</p>
+
                 <p>
                   <strong>E-Mail:</strong> {email}<br>
                   <strong>Team:</strong> {teamname or '-'}
                 </p>
-                <p>Viel Erfolg beim Planen deiner Trainings!<br>
-                Dein <strong>Trainer App</strong> Team</p>
+
+                <p>
+                  Noqe unterstützt dich als Trainer*in in deinem Alltag – bei Planung, Organisation und vielem mehr. 
+                  Wir freuen uns, dich auf deinem Weg begleiten zu dürfen!
+                </p>
+
+                <p>
+                Viel Erfolg und Spaß mit Noqe!<br>
+                Dein <strong>Noqe-Team</strong>
+                </p>
                 """
                 send_email(email, subject, text_body, html_body)
+
 
                 return redirect(url_for("summary"))
 
