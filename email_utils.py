@@ -2,40 +2,109 @@ import os
 import mailchimp_transactional as MailchimpTransactional
 from mailchimp_transactional.api_client import ApiClientError
 
-MANDRILL_API_KEY = os.getenv("MANDRILL_API_KEY")
-MAIL_FROM_ADDRESS = os.getenv("MAIL_FROM_ADDRESS")
+# Diese Variablen müssen in Railway / deiner .env gesetzt sein:
+# MANDRILL_API_KEY  -> dein API-Key von Mailchimp Transactional
+# MAIL_FROM_ADDRESS -> z.B. "info@noqe.ch"
+
+MANDRILL_API_KEY = os.environ.get("MANDRILL_API_KEY")
+MAIL_FROM_ADDRESS = os.environ.get("MAIL_FROM_ADDRESS", "info@noqe.ch")
+
+_client = None
 
 
-def send_email(to_address, subject, text_body, html_body=None):
+def _get_client():
+    """Gibt einen initialisierten Mandrill-Client zurück oder None, wenn kein API-Key gesetzt ist."""
+    global _client
+    if _client is None and MANDRILL_API_KEY:
+        _client = MailchimpTransactional.Client(MANDRILL_API_KEY)
+    return _client
+
+
+def send_email(to_address: str, subject: str, body_text: str, body_html: str | None = None) -> bool:
     """
-    Send an email via Mailchimp Transactional (Mandrill).
-    text_body: plain text version
-    html_body: optional HTML version
+    Einfache E-Mail über Mandrill senden (ohne Template).
+    Wird von /test-email und vom Passwort-Reset verwendet.
     """
-
-    if not MANDRILL_API_KEY:
-        print("ERROR: MANDRILL_API_KEY is missing")
+    client = _get_client()
+    if not client:
+        print("Mandrill client not configured (MANDRILL_API_KEY missing)")
         return False
 
     if not MAIL_FROM_ADDRESS:
-        print("ERROR: MAIL_FROM_ADDRESS is missing")
+        print("MAIL_FROM_ADDRESS not set")
         return False
 
+    if not to_address:
+        print("No recipient address")
+        return False
+
+    message = {
+        "from_email": MAIL_FROM_ADDRESS,
+        "subject": subject,
+        "text": body_text or "",
+        "html": body_html or body_text or "",
+        "to": [{"email": to_address, "type": "to"}],
+    }
+
     try:
-        client = MailchimpTransactional.Client(MANDRILL_API_KEY)
-
-        message = {
-            "from_email": MAIL_FROM_ADDRESS,
-            "subject": subject,
-            "text": text_body or "",               # plain text
-            "html": html_body or text_body or "",  # html (fallback to text)
-            "to": [{"email": to_address, "type": "to"}],
-        }
-
         result = client.messages.send({"message": message})
         print("Email sent:", result)
         return True
+    except ApiClientError as e:
+        print("Mandrill API error in send_email:", e.text)
+        return False
 
-    except ApiClientError as error:
-        print("Mandrill API error:", error.text)
+
+def send_email_template(
+    to_address: str,
+    template_name: str,
+    merge_vars: dict | None = None,
+    subject: str | None = None,
+) -> bool:
+    """
+    E-Mail über ein Mandrill-Template senden.
+    'template_name' muss in Mandrill existieren (z.B. 'registration_welcome').
+    merge_vars: {"name": "Max", "email": "..."} etc.
+    """
+    client = _get_client()
+    if not client:
+        print("Mandrill client not configured (MANDRILL_API_KEY missing)")
+        return False
+
+    if not MAIL_FROM_ADDRESS:
+        print("MAIL_FROM_ADDRESS not set")
+        return False
+
+    if not to_address:
+        print("No recipient address")
+        return False
+
+    if merge_vars is None:
+        merge_vars = {}
+
+    message = {
+        "from_email": MAIL_FROM_ADDRESS,
+        "to": [{"email": to_address, "type": "to"}],
+        "merge_language": "handlebars",
+        "global_merge_vars": [
+            {"name": key, "content": value}
+            for key, value in merge_vars.items()
+        ],
+    }
+
+    if subject:
+        message["subject"] = subject
+
+    try:
+        result = client.messages.send_template(
+            {
+                "template_name": template_name,
+                "template_content": [],
+                "message": message,
+            }
+        )
+        print("Template email sent:", result)
+        return True
+    except ApiClientError as e:
+        print("Mandrill API error in send_email_template:", e.text)
         return False
