@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, s
 import os
 import smtplib
 from email.message import EmailMessage
+from email_utils import send_email
 
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -238,6 +239,25 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///trainer.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
+
+
+
+@app.route("/test-email")
+def test_email():
+    # TODO: replace this with your own email address
+    to_email = "mirbaz.emal@gmail.com"
+
+    subject = "Test email from Football App via Mandrill"
+    html_content = "<h1>Hello!</h1><p>This is a test email from your Football Training App.</p>"
+
+    success = send_email(to_email, subject, html_content)
+
+    if success:
+        return "Test email sent successfully."
+    else:
+        return "Failed to send test email.", 500
+
+
 
 
 def send_email(to_address: str, subject: str, body_text: str, body_html: str | None = None):
