@@ -1,8 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, send_file
 import os
-import smtplib
-from email.message import EmailMessage
 from email_utils import send_email
+
 
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -239,67 +238,6 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///trainer.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
-
-
-
-@app.route("/test-email")
-def test_email():
-    # TODO: replace this with your own email address
-    to_email = "mirbaz.emal@gmail.com"
-
-    subject = "Test email from Football App via Mandrill"
-    html_content = "<h1>Hello!</h1><p>This is a test email from your Football Training App.</p>"
-
-    success = send_email(to_email, subject, html_content)
-
-    if success:
-        return "Test email sent successfully."
-    else:
-        return "Failed to send test email.", 500
-
-
-
-
-def send_email(to_address: str, subject: str, body_text: str, body_html: str | None = None):
-    """
-    Versendet eine E-Mail über das Google SMTP-Relay.
-    Nutzt Umgebungsvariablen:
-      SMTP_SERVER, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, MAIL_FROM
-    """
-    if not to_address:
-        return
-
-    smtp_server = os.environ.get("SMTP_SERVER", "smtp-relay.gmail.com")
-    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
-    smtp_user = os.environ.get("SMTP_USERNAME")
-    smtp_pass = os.environ.get("SMTP_PASSWORD")
-    mail_from = os.environ.get("MAIL_FROM", smtp_user)
-
-    if not (smtp_server and smtp_port and smtp_user and smtp_pass and mail_from):
-        print("Email not sent: SMTP config incomplete")
-        return
-
-    msg = EmailMessage()
-    msg["Subject"] = subject
-    msg["From"] = mail_from
-    msg["To"] = to_address
-    msg.set_content(body_text)
-
-    if body_html:
-        msg.add_alternative(body_html, subtype="html")
-
-    try:
-        with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_pass)
-            server.send_message(msg)
-            print(f"Email sent to {to_address}")
-    except Exception as e:
-        print(f"Error sending email: {e}")
-
-
-def get_serializer():
-    return URLSafeTimedSerializer(app.secret_key)
 
 
 def generate_reset_token(coach_id: int) -> str:
