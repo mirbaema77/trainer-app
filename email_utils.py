@@ -9,6 +9,10 @@ from mailchimp_transactional.api_client import ApiClientError
 MANDRILL_API_KEY = os.environ.get("MANDRILL_API_KEY")
 MAIL_FROM_ADDRESS = os.environ.get("MAIL_FROM_ADDRESS", "info@noqe.ch")
 
+MANDRILL_API_KEY = os.environ.get("MANDRILL_API_KEY")
+MAIL_FROM_ADDRESS = os.environ.get("MAIL_FROM_ADDRESS", "info@noqe.ch")
+
+
 _client = None
 
 
