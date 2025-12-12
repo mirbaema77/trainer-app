@@ -342,6 +342,10 @@ class Training(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+if os.getenv("RESET_DB") == "1":
+    if os.path.exists("database.db"):
+        os.remove("database.db")
+
 
 with app.app_context():
     db.create_all()
