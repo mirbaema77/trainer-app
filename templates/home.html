@@ -1,22 +1,39 @@
 {% extends "base.html" %}
 {% block content %}
 
+<style>
+  /* Start page: equal button size */
+  .start-btn{
+    width: 320px;               /* a bit wider */
+    max-width: 92vw;            /* still mobile friendly */
+    height: 56px;               /* fixed height -> both equal */
+    border-radius: 999px;
+    border: none;
+    background-color: #3cff9a;
+    color: #071625;
+    font-size: 16px;            /* slightly smaller so it fits */
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;        /* vertical center */
+    justify-content: center;    /* horizontal center */
+    margin: 14px auto;
+    white-space: nowrap;        /* prevent line break */
+  }
+
+  .start-btn:hover { filter: brightness(1.05); }
+</style>
+
 <div class="content">
-    <h1>Start</h1>
+  <h1>Start</h1>
 
-    <a href="{{ url_for('choose_age') }}" style="text-decoration:none;">
-        <button class="btn">Training erstellen</button>
-    </a>
+  <a href="{{ url_for('choose_age') }}" style="text-decoration:none;">
+    <button class="start-btn" type="button">Training erstellen</button>
+  </a>
 
-    <a href="{{ url_for('list_players') }}" style="text-decoration:none;">
-        <button class="btn">Spieler &amp; Positionen</button>
-    </a>
-
-    {#
-    <a href="{{ url_for('my_trainings') }}">
-        <button class="btn">Meine Trainings</button>
-    </a>
-    #}
+  <a href="{{ url_for('list_players') }}" style="text-decoration:none;">
+    <button class="start-btn" type="button">Spieleranalyse &amp; Formationen</button>
+  </a>
 </div>
 
 {% endblock %}

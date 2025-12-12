@@ -14,6 +14,8 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 from ml_model import recommend_position_from_attributes, map_form_to_model_features
 
+#trainer-app-production-cf65.up.railway.app/_admin/download-db?token=<DEIN-DB_ADMIN_TOKEN>
+
 
 NICE_POSITION_LABELS = {
     "RB": "Rechter Verteidiger",
@@ -588,9 +590,10 @@ def register():
                     "super, dass du jetzt Teil von Noqe bist! Dein Account wurde erfolgreich erstellt.\n\n"
                     f"E-Mail: {email}\n"
                     f"Team: {teamname or '-'}\n\n"
-                    "Noqe unterstützt dich als Trainer*in in deinem gesamten Alltag – ob Planung, Organisation "
-                    "oder Assistenz im Training. Wir freuen uns, dich auf diesem Weg zu begleiten.\n\n"
-                    "Viel Erfolg und Spaß mit Noqe!\n"
+                    "Noqe stärkt dich als Trainer*in in jedem Moment deines Alltags – von der Trainingsvorbereitung über"
+                    "die optimale Formationswahl bis hin zu deinem persönlichen Assistenten an deiner Seite."
+                    "Wir freuen uns, dich auf diesem Weg zu begleiten.\n\n"
+                    "Viel Erfolg und Spass mit Noqe!\n"
                     "Dein Noqe-Team"
                 )
 
@@ -605,12 +608,13 @@ def register():
                 </p>
 
                 <p>
-                  Noqe unterstützt dich als Trainer*in in deinem Alltag – bei Planung, Organisation und vielem mehr. 
-                  Wir freuen uns, dich auf deinem Weg begleiten zu dürfen!
+                    Noqe stärkt dich als Trainer*in in jedem Moment deines Alltags – von der Trainingsvorbereitung über 
+                    die optimale Formationswahl bis hin zu deinem persönlichen Assistenten an deiner Seite. 
+                    Wir freuen uns darauf, dich auf deinem Weg zu begleiten!
                 </p>
 
                 <p>
-                Viel Erfolg und Spaß mit Noqe!<br>
+                Viel Erfolg und Spass mit Noqe!<br>
                 Dein <strong>Noqe-Team</strong>
                 </p>
                 """

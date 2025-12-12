@@ -44,6 +44,7 @@ def send_email(to_address: str, subject: str, body_text: str, body_html: str | N
 
     message = {
         "from_email": MAIL_FROM_ADDRESS,
+        "from_name": "Noqe",
         "subject": subject,
         "text": body_text or "",
         "html": body_html or body_text or "",
