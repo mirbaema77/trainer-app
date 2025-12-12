@@ -449,13 +449,26 @@ def home():
 def start():
     return render_template("home.html")
 
+@app.route("/training-type")
+def training_type():
+    return render_template("training_type.html")
+
+@app.route("/special-training")
+def special_training():
+    return render_template("special_training.html")
+
+@app.route("/pro-only")
+def pro_only():
+    return render_template("pro_only.html")
+
+
 
 @app.route("/training", methods=["GET", "POST"])
 def choose_age():
     if request.method == "POST":
         age_group = request.form.get("age_group")
         session["age_group"] = age_group
-        return redirect(url_for("choose_focus"))
+        return redirect(url_for("choose_players"))
     return render_template("age.html")
 
 
@@ -482,7 +495,7 @@ def choose_physical():
     if request.method == "POST":
         physical = request.form.get("physical")
         session["physical"] = physical
-        return redirect(url_for("choose_players"))
+        return redirect(url_for("ai_wishes_teaser"))
 
     physical = session.get("physical", "medium")
     return render_template("physical.html", physical=physical)
@@ -493,7 +506,7 @@ def choose_players():
     if request.method == "POST":
         players_count = request.form.get("players")
         session["players"] = players_count
-        return redirect(url_for("ai_wishes_teaser"))
+        return redirect(url_for("choose_focus"))
 
     players_count = session.get("players", 16)
     return render_template("players.html", players=players_count)

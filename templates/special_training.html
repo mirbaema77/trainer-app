@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="content">
+    <h1>Spezialtraining</h1>
+
+    <a href="{{ url_for('pro_only') }}" style="text-decoration:none;">
+        <button class="btn" type="button">Saisonvorbereitung</button>
+    </a>
+
+    <a href="{{ url_for('pro_only') }}" style="text-decoration:none;">
+        <button class="btn" type="button">Rückrundenvorbereitung</button>
+    </a>
+
+    <a href="{{ url_for('pro_only') }}" style="text-decoration:none;">
+        <button class="btn" type="button">Spielvorbereitung</button>
+    </a>
+</div>
+
+{% endblock %}

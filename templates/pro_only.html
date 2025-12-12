@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="content">
+    <h1>Pro-Version</h1>
+
+    <p style="max-width: 280px; opacity: 0.9; margin-bottom: 32px;">
+        Diese Funktion ist nur in der Pro-Version verfügbar.
+    </p>
+
+    <a href="{{ url_for('training_type') }}" style="text-decoration:none;">
+        <button class="btn" type="button">Zurück zur Trainingsauswahl</button>
+    </a>
+</div>
+
+{% endblock %}

@@ -64,17 +64,23 @@
 
         .btn {
             width: 280px;
-            padding: 14px 20px;
+            height: 52px;                 /* ✅ fixed height */
             border-radius: 999px;
             border: none;
             background-color: #3cff9a;
             color: #071625;
-            font-size: 18px;
+            font-size: 17px;              /* matches age page */
             font-weight: 600;
             cursor: pointer;
             margin: 10px auto;
-            display: block;
+
+            display: flex;                /* ✅ perfect centering */
+            align-items: center;
+            justify-content: center;
+
+            white-space: nowrap;          /* ✅ no line breaks */
         }
+
 
         input[type="text"],
         input[type="email"],
@@ -152,7 +158,7 @@
             width: 100%;
 
             /* Remove side rounding */
-            border-radius: 20px 20px 0 0; /* only top corners rounded */
+            border-radius: 0; /* only top corners rounded */
 
             display: flex;
             justify-content: center;

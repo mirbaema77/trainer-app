@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="content">
+    <h1>Training auswählen</h1>
+
+    <a href="{{ url_for('choose_age') }}" style="text-decoration:none;">
+        <button class="btn">Standardtraining</button>
+    </a>
+
+    <a href="{{ url_for('special_training') }}" style="text-decoration:none;">
+        <button class="btn">Spezialtraining</button>
+    </a>
+</div>
+
+{% endblock %}
