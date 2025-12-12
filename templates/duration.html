@@ -97,8 +97,9 @@
             position: fixed;
             left: 0;
             right: 0;
-            bottom: env(safe-area-inset-bottom, 0);
-            height: 64px;
+            bottom: 0;
+            height: calc(64px + env(safe-area-inset-bottom, 0));
+            padding-bottom: env(safe-area-inset-bottom, 0);
             background-color: #102341;
             border-radius: 0;
             display: flex;
