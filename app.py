@@ -253,6 +253,9 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
+def get_serializer():
+    return URLSafeTimedSerializer(app.secret_key)
+
 
 def generate_reset_token(coach_id: int) -> str:
     s = get_serializer()
@@ -370,6 +373,11 @@ with app.app_context():
 def init_db():
     db.create_all()
     return "DB initialized"
+
+
+def normalize_email(email: str) -> str:
+    return (email or "").strip().lower()
+
 
 
 def find_training_from_excel(age_group, focus, duration, players_count, physical):
@@ -608,6 +616,10 @@ def find_training_videos_from_excel(age_group, focus, intensity, players_count):
 
     return out
 
+@app.route("/_debug/coaches")
+def debug_coaches():
+    coaches = Coach.query.all()
+    return {"coaches": [{"id": c.id, "email": c.email} for c in coaches]}
 
 
 
@@ -911,7 +923,7 @@ def register():
 
     if request.method == "POST":
         name = (request.form.get("name") or "").strip()
-        email = (request.form.get("email") or "").strip()
+        email = normalize_email(request.form.get("email"))
         password = (request.form.get("password") or "").strip()
         birthdate = (request.form.get("birthdate") or "").strip()
         gender = (request.form.get("gender") or "").strip()
@@ -923,6 +935,7 @@ def register():
             existing = Coach.query.filter_by(email=email).first()
             if existing:
                 message = "Für diese E-Mail existiert bereits ein Konto. Bitte einloggen."
+                return render_template("register.html", message=message)
             else:
                 coach = Coach(
                     name=name,
@@ -984,7 +997,7 @@ def register():
 def forgot_password():
     info = None
     if request.method == "POST":
-        email = (request.form.get("email") or "").strip()
+        email = normalize_email(request.form.get("email"))
         if email:
             coach = Coach.query.filter_by(email=email).first()
             if coach:
@@ -1041,14 +1054,17 @@ def login():
     message = None
 
     if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
+        email = normalize_email(request.form.get("email"))
+        password = (request.form.get("password") or "").strip()
 
         coach = Coach.query.filter_by(email=email).first()
         if coach and coach.check_password(password):
             session["coach_id"] = coach.id
             session["coach_name"] = coach.name
-            return redirect(url_for("summary"))
+
+            next_url = session.pop("next_url", None)
+            return redirect(next_url or url_for("summary"))
+
         else:
             message = "E-Mail oder Passwort falsch."
 
