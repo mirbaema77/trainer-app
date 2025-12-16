@@ -242,7 +242,13 @@ def normalize_for_formation(code: str) -> str:
 app = Flask(__name__)
 app.secret_key = "change-me-later"
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///trainer.db"
+# --- SQLite path (writable on Railway) ---
+DATA_DIR = os.environ.get("DATA_DIR", "/tmp")  # Railway-safe default
+os.makedirs(DATA_DIR, exist_ok=True)
+DB_PATH = os.path.join(DATA_DIR, "trainer.db")
+
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
+
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
@@ -348,8 +354,12 @@ class Training(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 if os.getenv("RESET_DB") == "1":
-    if os.path.exists("database.db"):
-        os.remove("database.db")
+    try:
+        if os.path.exists(DB_PATH):
+            os.remove(DB_PATH)
+    except Exception:
+        pass
+
 
 
 with app.app_context():
