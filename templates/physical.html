@@ -1,6 +1,5 @@
 <!doctype html>
 <html lang="de">
-
 <head>
     <meta charset="utf-8">
     <title>Training – Intensität</title>
@@ -50,28 +49,19 @@
 
         .bottom-nav {
             position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 0;
-
-            height: 48px; /* Netflix-like base height */
+            left: 0; right: 0; bottom: 0;
+            height: 48px;
             padding-bottom: env(safe-area-inset-bottom, 0);
-
             background-color: #102341;
             border-radius: 0;
-
             display: flex;
             justify-content: center;
             align-items: center;
-
             box-shadow: 0 -2px 10px rgba(0,0,0,0.25);
             z-index: 1000;
         }
-
-
-
         .bottom-nav__button { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: #ffffff; font-size: 10px; }
-        .bottom-nav__icon { width: 22px; height: 22px; margin-bottom: 4px; }
+        .bottom-nav__icon { width: 22px; height: 22px; margin-bottom: 3px; }
     </style>
 </head>
 
@@ -81,17 +71,17 @@
         <div class="step"></div>
         <div class="step"></div>
         <div class="step"></div>
-        <div class="step"></div>
         <div class="step active"></div>
+        <div class="step"></div>
     </div>
 
     <div class="content">
         <h1>Intensität</h1>
 
         <form method="post">
-            <button class="option" type="submit" name="physical" value="light">Leicht</button>
-            <button class="option" type="submit" name="physical" value="medium">Mittel</button>
-            <button class="option" type="submit" name="physical" value="heavy">Intensiv</button>
+            <button class="option" type="submit" name="physical" value="Leicht">Leicht</button>
+            <button class="option" type="submit" name="physical" value="Mittel">Mittel</button>
+            <button class="option" type="submit" name="physical" value="Hoch">Hoch</button>
         </form>
     </div>
 </div>
@@ -106,6 +96,5 @@
         <span>Startseite</span>
     </a>
 </nav>
-
 </body>
 </html>

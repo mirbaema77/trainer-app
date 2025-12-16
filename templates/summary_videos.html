@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .sv-wrap{
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    padding-bottom: 8px;
+  }
+
+  .sv-title{
+    width:100%;
+    text-align:center;
+    margin-top: 6px;
+    margin-bottom: 2px;
+  }
+
+  .sv-title h1{
+    margin: 0;
+    font-size: 20px;
+  }
+
+  .phase-card{
+    width:100%;
+    background: rgba(16, 35, 65, 0.65);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 12px;
+    box-sizing: border-box;
+    text-align:left;
+  }
+
+  .phase-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom: 10px;
+  }
+
+  .phase-name{
+    font-weight: 700;
+    font-size: 15px;
+  }
+
+  .phase-min{
+    font-size: 12px;
+    opacity: 0.9;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.20);
+    border: 1px solid rgba(255,255,255,0.10);
+    white-space: nowrap;
+  }
+
+  .phase-body{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+
+  .phase-text{
+    font-size: 13px;
+    opacity: 0.95;
+    line-height: 1.4;
+  }
+
+  .video-grid{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+
+  .video-card{
+    width:100%;
+    border-radius: 14px;
+    overflow:hidden;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(0,0,0,0.18);
+  }
+
+  .video-embed{
+    width:100%;
+    aspect-ratio: 16 / 9;
+    background: rgba(0,0,0,0.35);
+  }
+
+  .video-embed iframe{
+    width:100%;
+    height:100%;
+    border:0;
+  }
+
+  /* Lazy-load poster */
+  .video-poster{
+    width: 100%;
+    height: 100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    position: relative;
+  }
+
+  .video-poster::after{
+    content: "▶";
+    width: 54px;
+    height: 54px;
+    border-radius: 999px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 20px;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(255,255,255,0.25);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+  }
+
+  .video-hint{
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    font-size: 12px;
+    opacity: 0.9;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.12);
+    text-align: center;
+  }
+
+  .sv-actions{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-top: 6px;
+  }
+</style>
+
+<div class="sv-wrap">
+
+  <div class="sv-title">
+    <h1>Dein Training – {{ day_name }}</h1>
+  </div>
+
+  <!-- 1) Einlaufen (text only) -->
+  <div class="phase-card">
+    <div class="phase-head">
+      <div class="phase-name">1. Einlaufen</div>
+      <div class="phase-min">{{ phase_minutes.get('Einlaufen', '') }} Min</div>
+    </div>
+    <div class="phase-body">
+      <div class="phase-text">
+        {{ phase_text.get('Einlaufen', 'Kurze Aktivierung: lockeres Laufen, Mobilisation, koordinative Aufgaben.') }}
+      </div>
+    </div>
+  </div>
+
+  <!-- 2) Aufwärmspiel (video from Excel phase "Aufwärmen") -->
+  <div class="phase-card">
+    <div class="phase-head">
+      <div class="phase-name">2. Aufwärmspiel</div>
+      <div class="phase-min">{{ phase_minutes.get('Aufwärmspiel', '') }} Min</div>
+    </div>
+
+    <div class="phase-body">
+      {% if videos and videos.get('Aufwärmen') and videos.get('Aufwärmen')|length > 0 %}
+        <div class="video-grid">
+          {% for v in videos.get('Aufwärmen') %}
+            <div class="video-card">
+              <div class="video-embed">
+                <div class="video-poster"
+                     data-embed="{{ v.embed_url }}"
+                     style="background-image: url('{{ v.thumbnail_url }}');
+                            background-size: cover;
+                            background-position: center;">
+                  <div class="video-hint">Tippen zum Abspielen</div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="phase-text">Für diese Auswahl sind aktuell keine Videos verfügbar.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- 3) Hauptteil 1 (video) -->
+  <div class="phase-card">
+    <div class="phase-head">
+      <div class="phase-name">3. Hauptteil 1</div>
+      <div class="phase-min">{{ phase_minutes.get('Hauptteil 1', '') }} Min</div>
+    </div>
+
+    <div class="phase-body">
+      {% if videos and videos.get('Hauptteil 1') and videos.get('Hauptteil 1')|length > 0 %}
+        <div class="video-grid">
+          {% for v in videos.get('Hauptteil 1') %}
+            <div class="video-card">
+              <div class="video-embed">
+                <div class="video-poster" data-embed="{{ v.embed_url }}">
+                  <div class="video-hint">Tippen zum Abspielen</div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="phase-text">Für diese Auswahl sind aktuell keine Videos verfügbar.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- 4) Hauptteil 2 (video) -->
+  <div class="phase-card">
+    <div class="phase-head">
+      <div class="phase-name">4. Hauptteil 2</div>
+      <div class="phase-min">{{ phase_minutes.get('Hauptteil 2', '') }} Min</div>
+    </div>
+
+    <div class="phase-body">
+      {% if videos and videos.get('Hauptteil 2') and videos.get('Hauptteil 2')|length > 0 %}
+        <div class="video-grid">
+          {% for v in videos.get('Hauptteil 2') %}
+            <div class="video-card">
+              <div class="video-embed">
+                <div class="video-poster" data-embed="{{ v.embed_url }}">
+                  <div class="video-hint">Tippen zum Abspielen</div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="phase-text">Für diese Auswahl sind aktuell keine Videos verfügbar.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- 5) Abschlussspiel (text only) -->
+  <div class="phase-card">
+    <div class="phase-head">
+      <div class="phase-name">5. Abschlussspiel</div>
+      <div class="phase-min">{{ phase_minutes.get('Abschlussspiel', '') }} Min</div>
+    </div>
+    <div class="phase-body">
+      <div class="phase-text">
+        {{ phase_text.get('Abschlussspiel', 'Abschluss-Spiel: Regeln passend zum Schwerpunkt, hohe Intensität kurz halten.') }}
+      </div>
+    </div>
+  </div>
+
+  <!-- 6) Auslaufen (text only) -->
+  <div class="phase-card">
+    <div class="phase-head">
+      <div class="phase-name">6. Auslaufen</div>
+      <div class="phase-min">{{ phase_minutes.get('Auslaufen', '') }} Min</div>
+    </div>
+    <div class="phase-body">
+      <div class="phase-text">
+        {{ phase_text.get('Auslaufen', 'Lockeres Auslaufen, Atmung runterfahren, kurze Mobilität/Dehnen.') }}
+      </div>
+    </div>
+  </div>
+
+  <div class="sv-actions">
+    <a href="{{ url_for('start') }}" style="text-decoration:none;">
+      <button class="btn" type="button">Zurück zur Startseite</button>
+    </a>
+  </div>
+
+</div>
+
+<script>
+  document.addEventListener("click", function(e){
+    const poster = e.target.closest(".video-poster");
+    if(!poster) return;
+
+    const url = poster.getAttribute("data-embed");
+    if(!url) return;
+
+    const iframe = document.createElement("iframe");
+    iframe.src = url;
+    iframe.allow = "autoplay; encrypted-media; picture-in-picture";
+    iframe.allowFullscreen = true;
+
+    poster.replaceWith(iframe);
+  });
+</script>
+
+{% endblock %}

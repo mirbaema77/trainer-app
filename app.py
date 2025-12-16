@@ -2,6 +2,11 @@ from flask import Flask, render_template, request, redirect, url_for, session, s
 import os
 from email_utils import send_email
 
+from datetime import datetime
+import locale
+
+import urllib.parse
+import re
 
 
 from flask_sqlalchemy import SQLAlchemy
@@ -443,6 +448,310 @@ def find_training_from_excel(age_group, focus, duration, players_count, physical
 
     return trainings
 
+import re
+
+VIDEO_EXCEL_PATH = "trainings_videos.xlsx"
+
+
+def _parse_players_range(value):
+    """
+    Supports:
+    - int / float (e.g. 12)
+    - strings like "8 to 18", "12  to 18", "8-18"
+    Returns (min_players, max_players) or (None, None) if unknown.
+    """
+    if value is None:
+        return (None, None)
+
+    # numeric cell
+    try:
+        if isinstance(value, (int, float)) and not pd.isna(value):
+            n = int(value)
+            return (n, n)
+    except Exception:
+        pass
+
+    s = str(value).strip().lower()
+    if not s or s == "nan":
+        return (None, None)
+
+    # normalize separators
+    s = s.replace("–", "-").replace("—", "-")
+    s = re.sub(r"\s+", " ", s)
+
+    # "8 to 18" / "8 - 18"
+    m = re.search(r"(\d+)\s*(to|-)\s*(\d+)", s)
+    if m:
+        return (int(m.group(1)), int(m.group(3)))
+
+    # single number in string
+    m2 = re.search(r"(\d+)", s)
+    if m2:
+        n = int(m2.group(1))
+        return (n, n)
+
+    return (None, None)
+
+
+def _players_match(row_players_value, selected_players_count: int) -> bool:
+    lo, hi = _parse_players_range(row_players_value)
+    if lo is None or hi is None:
+        return False
+    return lo <= selected_players_count <= hi
+
+
+def _drive_file_id(drive_link: str) -> str | None:
+    if not drive_link:
+        return None
+
+    link = str(drive_link).strip()
+
+    # covers:
+    # /file/d/<ID>/view
+    # /file/d/<ID>/preview
+    m = re.search(r"/file/d/([^/]+)/", link)
+    if m:
+        return m.group(1)
+
+    # covers:
+    # .../d/<ID>/... (some shared formats)
+    m = re.search(r"/d/([^/]+)", link)
+    if m:
+        return m.group(1)
+
+    # covers:
+    # open?id=<ID>
+    # uc?id=<ID>
+    try:
+        parsed = urllib.parse.urlparse(link)
+        qs = urllib.parse.parse_qs(parsed.query)
+        if "id" in qs and qs["id"]:
+            return qs["id"][0]
+    except Exception:
+        pass
+
+    return None
+
+def find_training_videos_from_excel(age_group, focus, intensity, players_count):
+    try:
+        df = pd.read_excel(VIDEO_EXCEL_PATH)
+    except FileNotFoundError:
+        return {"Aufwärmen": [], "Hauptteil 1": [], "Hauptteil 2": []}
+
+    drive_col = "Google Drive Links "
+    if drive_col not in df.columns and "Google Drive Links" in df.columns:
+        drive_col = "Google Drive Links"
+
+    def clean(x):
+        s = "" if x is None else str(x).strip()
+        return "" if s.lower() == "nan" else s
+
+    for c in ["Spieleralter", "Trainingsschwerpunkt", "Intensität", "Trainingsphase", "Spieleranzahl"]:
+        df[c] = df[c].apply(clean)
+    df[drive_col] = df[drive_col].apply(clean)
+
+    try:
+        players_count = int(players_count)
+    except Exception:
+        return {"Aufwärmen": [], "Hauptteil 1": [], "Hauptteil 2": []}
+
+    # strict filter
+    df = df[
+        (df["Spieleralter"] == clean(age_group)) &
+        (df["Trainingsschwerpunkt"] == clean(focus)) &
+        (df["Intensität"] == clean(intensity)) &
+        (df[drive_col] != "")
+    ]
+
+    out = {"Aufwärmen": [], "Hauptteil 1": [], "Hauptteil 2": []}
+
+    # 🔥 KEY FIX: group by phase
+    for phase in out.keys():
+        phase_df = df[df["Trainingsphase"] == phase]
+
+        # match players range
+        phase_df = phase_df[
+            phase_df["Spieleranzahl"].apply(
+                lambda v: _players_match(v, players_count)
+            )
+        ]
+
+        if phase_df.empty:
+            continue
+
+        # ✅ deterministic: always first row in Excel for that phase
+        row = phase_df.iloc[0]
+
+        drive_link = row[drive_col]
+
+        # extract file id
+        m = re.search(r"/file/d/([^/]+)/", drive_link)
+        file_id = m.group(1) if m else None
+
+        out[phase] = [{
+            "embed_url": drive_to_embed_url(drive_link),
+            "thumbnail_url": (
+                f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
+                if file_id else ""
+            )
+        }]
+
+    return out
+
+
+
+
+def drive_to_embed_url(drive_link: str) -> str:
+    """
+    Convert various Google Drive link formats into an embeddable preview URL.
+    Works for:
+      - https://drive.google.com/file/d/<ID>/view?...
+      - https://drive.google.com/open?id=<ID>
+      - https://drive.google.com/uc?id=<ID>&export=download
+    Returns: https://drive.google.com/file/d/<ID>/preview
+    """
+    if not drive_link:
+        return ""
+
+    link = str(drive_link).strip()
+
+    # file/d/<id>/...
+    m = re.search(r"/file/d/([^/]+)/", link)
+    if m:
+        file_id = m.group(1)
+        return f"https://drive.google.com/file/d/{file_id}/preview"
+
+    # ?id=<id>
+    try:
+        parsed = urllib.parse.urlparse(link)
+        qs = urllib.parse.parse_qs(parsed.query)
+        if "id" in qs and qs["id"]:
+            file_id = qs["id"][0]
+            return f"https://drive.google.com/file/d/{file_id}/preview"
+    except Exception:
+        pass
+
+    # fallback: return original (might still work)
+    return link
+
+
+def compute_phase_minutes(age_group: str, intensity: str, duration_minutes: int) -> dict:
+    """
+    Returns minutes for 6 phases:
+    Einlaufen, Aufwärmspiel, Hauptteil 1, Hauptteil 2, Abschlussspiel, Auslaufen
+
+    Simple rule-set:
+    - Base minutes depend on age group
+    - Intensity modifies warm-up vs main load
+    - Remaining time goes into Hauptteil 1/2 split
+    """
+    age_group = (age_group or "").strip()
+    intensity = (intensity or "").strip()
+
+    # base minutes by age
+    if age_group == "E-Junioren (8–10)":
+        base = {"Einlaufen": 6, "Aufwärmspiel": 12, "Abschlussspiel": 12, "Auslaufen": 4}
+    elif age_group == "D/C-Junioren (11–15)":
+        base = {"Einlaufen": 10, "Aufwärmspiel": 16, "Abschlussspiel": 16, "Auslaufen": 6}
+    else:  # "16+"
+        base = {"Einlaufen": 12, "Aufwärmspiel": 18, "Abschlussspiel": 18, "Auslaufen": 8}
+
+    # intensity modifiers (Leicht / Mittel / Hoch)
+    if intensity == "Leicht":
+        base["Aufwärmspiel"] = max(8, base["Aufwärmspiel"] - 2)
+    elif intensity == "Hoch":
+        base["Aufwärmspiel"] = base["Aufwärmspiel"] + 4
+
+    fixed = base["Einlaufen"] + base["Aufwärmspiel"] + base["Abschlussspiel"] + base["Auslaufen"]
+    remaining = max(10, duration_minutes - fixed)
+
+    # Split main part
+    ht1 = int(round(remaining * 0.55))
+    ht2 = remaining - ht1
+
+    # If intensity high: shift a bit from main part into safer prep
+    if intensity == "Hoch":
+        shift = 4  # we added +4 warm-up, take it from main
+        take1 = min(2, ht1 - 5)
+        take2 = min(2, ht2 - 5)
+        ht1 -= take1
+        ht2 -= take2
+
+    return {
+        "Einlaufen": base["Einlaufen"],
+        "Aufwärmspiel": base["Aufwärmspiel"],
+        "Hauptteil 1": ht1,
+        "Hauptteil 2": ht2,
+        "Abschlussspiel": base["Abschlussspiel"],
+        "Auslaufen": base["Auslaufen"],
+    }
+
+
+def compute_phase_text(age_group: str, focus: str, intensity: str) -> dict:
+    """
+    Auto text for phases without video.
+    Keep it short and usable (MVP).
+    """
+    return {
+        "Einlaufen": "Lockeres Einlaufen + Mobilität (Hüfte/Sprunggelenk) + 2–3 koordinative Aufgaben.",
+        "Abschlussspiel": f"Abschlussspiel mit Schwerpunkt „{focus}“: klare Regeln, viele Aktionen, kurze Coaching-Impulse.",
+        "Auslaufen": "3–5 Minuten locker auslaufen + kurze Mobilität/Dehnen, Puls runterfahren.",
+    }
+
+
+
+
+@app.route("/_debug/videos")
+def debug_videos():
+    # quick test with hard-coded values you know exist in Excel
+    videos = find_training_videos_from_excel(
+        age_group="E-Junioren (8–10)",
+        focus="Abschluss",
+        intensity="Mittel",
+        players_count=10
+    )
+    return {"videos": videos}
+
+@app.route("/_debug/video-values")
+def debug_video_values():
+    df = pd.read_excel(VIDEO_EXCEL_PATH)
+
+    # detect drive column name (space / no space)
+    drive_col = "Google Drive Links "
+    if "Google Drive Links" in df.columns and drive_col not in df.columns:
+        drive_col = "Google Drive Links"
+
+    def uniq(col):
+        if col not in df.columns:
+            return []
+        return sorted(
+            {str(x).strip() for x in df[col].dropna().tolist() if str(x).strip() != ""}
+        )
+
+    return {
+        "columns": list(df.columns),
+        "Spieleralter": uniq("Spieleralter"),
+        "Trainingsschwerpunkt": uniq("Trainingsschwerpunkt"),
+        "Intensität": uniq("Intensität"),
+        "Trainingsphase": uniq("Trainingsphase"),
+        "spieleranzahl_examples": sorted({str(x).strip() for x in df["Spieleranzahl"].dropna().tolist()})[:25],
+        "drive_col_used": drive_col
+    }
+
+@app.route("/_debug/thumbs")
+def debug_thumbs():
+    ids = [
+        "1PvWDuHbkKfdfGkjpgT7Q06LLQuyA1fsT",
+        "1EgWHuJZeyUw3iOj5vesMGqU60RMpKsc2",
+    ]
+    return {
+        "thumbs": [
+            f"https://drive.google.com/thumbnail?id={i}&sz=w1000" for i in ids
+        ]
+    }
+
+
+
 
 @app.route("/")
 def home():
@@ -481,17 +790,18 @@ def choose_focus():
     if request.method == "POST":
         focus = request.form.get("focus")
         session["focus"] = focus
-        return redirect(url_for("choose_duration"))
+        return redirect(url_for("choose_physical"))
     return render_template("focus.html")
 
 
 @app.route("/duration", methods=["GET", "POST"])
 def choose_duration():
     if request.method == "POST":
-        duration = request.form.get("duration")
-        session["duration"] = duration
-        return redirect(url_for("choose_physical"))
+        session["duration"] = request.form.get("duration")
+        return redirect(url_for("ai_wishes_teaser"))
+
     return render_template("duration.html")
+
 
 
 @app.route("/physical", methods=["GET", "POST"])
@@ -499,7 +809,7 @@ def choose_physical():
     if request.method == "POST":
         physical = request.form.get("physical")
         session["physical"] = physical
-        return redirect(url_for("ai_wishes_teaser"))
+        return redirect(url_for("choose_duration"))
 
     physical = session.get("physical", "medium")
     return render_template("physical.html", physical=physical)
@@ -531,34 +841,52 @@ def ai_wishes_teaser():
 def install_pwa():
     return render_template("install.html")
 
-
 @app.route("/summary", methods=["GET", "POST"])
 def summary():
     age_group = session.get("age_group")
     focus = session.get("focus")
     duration = session.get("duration")
     players_count = session.get("players")
-    physical = session.get("physical")
+    intensity = session.get("physical")  # we store intensity in "physical"
 
-    save_message = None
+    # duration int
+    try:
+        duration_int = int(duration) if duration else 75
+    except Exception:
+        duration_int = 75
 
-    trainings = find_training_from_excel(
+    # Load videos (from new excel)
+    # Load videos (already includes embed_url + thumbnail_url)
+    videos = find_training_videos_from_excel(
         age_group=age_group,
         focus=focus,
-        duration=duration,
+        intensity=intensity,
         players_count=players_count,
-        physical=physical,
     )
 
+
+    # Phase minutes + text
+    phase_minutes = compute_phase_minutes(age_group, intensity, duration_int)
+    phase_text = compute_phase_text(age_group, focus, intensity)
+
+    try:
+        locale.setlocale(locale.LC_TIME, "de_DE.UTF-8")
+    except Exception:
+        pass
+
+    day_name = datetime.now().strftime("%A")
+
     return render_template(
-        "summary.html",
+        "summary_videos.html",
         age_group=age_group,
         focus=focus,
-        duration=duration,
+        duration=duration_int,
         players=players_count,
-        physical=physical,
-        trainings=trainings,
-        save_message=save_message,
+        physical=intensity,
+        videos=videos,
+        day_name=day_name,
+        phase_minutes=phase_minutes,
+        phase_text=phase_text,
     )
 
 
@@ -931,6 +1259,28 @@ def edit_player_attributes(player_id):
         return redirect(url_for("select_formation", player_id=player.id))
 
     return render_template("player_attributes.html", player=player)
+
+
+
+@app.route("/_admin/reset-db")
+def admin_reset_db():
+    token = request.args.get("token")
+    expected = os.environ.get("DB_ADMIN_TOKEN")
+
+    if expected is None:
+        return "DB_ADMIN_TOKEN not set", 500
+
+    if token != expected:
+        return "Forbidden", 403
+
+    db_path = db.engine.url.database
+    if not db_path or not os.path.exists(db_path):
+        return "Database not found", 404
+
+    os.remove(db_path)
+    return "Database deleted. Restart app to recreate."
+
+
 
 
 @app.route("/_admin/download-db")

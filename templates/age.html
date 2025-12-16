@@ -4,7 +4,6 @@
     <meta charset="utf-8">
     <title>Training – Spieleralter</title>
 
-    <!-- IMPORTANT: same viewport as base.html -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#0b1730">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,67 +12,27 @@
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 
     <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background-color: #0b1730;
-            min-height: 100vh;
-            color: white;
-        }
+        body { margin: 0; font-family: Arial, sans-serif; background-color: #0b1730; min-height: 100vh; color: white; }
+
         .phone {
             width: 100%;
             min-height: 100vh;
             box-sizing: border-box;
-
-            /* extra bottom padding so content is above nav bar */
-            padding: calc(40px + env(safe-area-inset-top, 0))
-                     20px
-                     calc(80px + env(safe-area-inset-bottom, 0));
-
+            padding: calc(40px + env(safe-area-inset-top, 0)) 20px calc(80px + env(safe-area-inset-bottom, 0));
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        .progress {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 32px;
-            justify-content: center;
-        }
+        .progress { display: flex; gap: 4px; margin-bottom: 32px; justify-content: center; }
+        .step { width: 32px; height: 8px; border-radius: 4px; background-color: #243246; }
+        .step.active { background-color: #3cff9a; }
 
-        .step {
-            width: 32px;
-            height: 8px;
-            border-radius: 4px;
-            background-color: #243246;
-        }
+        .content { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
 
-        .step.active {
-            background-color: #3cff9a;
-        }
+        h1 { margin: 0 0 28px 0; font-size: 26px; }
 
-        .content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-        }
-
-        h1 {
-            margin: 0 0 28px 0;
-            font-size: 26px;
-            color: white;
-        }
-
-        form {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            align-items: center;
-        }
+        form { display: flex; flex-direction: column; gap: 12px; align-items: center; }
 
         button.option {
             width: 280px;
@@ -86,47 +45,23 @@
             font-weight: 600;
             cursor: pointer;
         }
+        button.option:hover { filter: brightness(1.05); }
 
-        button.option:hover {
-            filter: brightness(1.05);
-        }
-
-        /* bottom home bar (same as base.html) */
         .bottom-nav {
             position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 0;
-
-            height: 48px; /* Netflix-like base height */
+            left: 0; right: 0; bottom: 0;
+            height: 48px;
             padding-bottom: env(safe-area-inset-bottom, 0);
-
             background-color: #102341;
             border-radius: 0;
-
             display: flex;
             justify-content: center;
             align-items: center;
-
             box-shadow: 0 -2px 10px rgba(0,0,0,0.25);
             z-index: 1000;
         }
-
-
-        .bottom-nav__button {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: #ffffff;
-            font-size: 10px;
-        }
-
-        .bottom-nav__icon {
-            width: 22px;
-            height: 22px;
-            margin-bottom: 4px;
-        }
+        .bottom-nav__button { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: #ffffff; font-size: 10px; }
+        .bottom-nav__icon { width: 22px; height: 22px; margin-bottom: 3px; }
     </style>
 </head>
 
@@ -144,9 +79,9 @@
         <h1>Spieleralter</h1>
 
         <form method="post">
-            <button class="option" type="submit" name="age_group" value="5 to 8">5–8 Jahre</button>
-            <button class="option" type="submit" name="age_group" value="13 to 16">13–16 Jahre</button>
-            <button class="option" type="submit" name="age_group" value="17+">17+ Jahre</button>
+            <button class="option" type="submit" name="age_group" value="E-Junioren (8–10)">E-Junioren (8–10)</button>
+            <button class="option" type="submit" name="age_group" value="D/C-Junioren (11–15)">D/C-Junioren (11–15)</button>
+            <button class="option" type="submit" name="age_group" value="16+">16+</button>
         </form>
     </div>
 </div>
@@ -161,6 +96,5 @@
         <span>Startseite</span>
     </a>
 </nav>
-
 </body>
 </html>
