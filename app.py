@@ -891,12 +891,17 @@ def summary():
     phase_minutes = compute_phase_minutes(age_group, intensity, duration_int)
     phase_text = compute_phase_text(age_group, focus, intensity)
 
-    try:
-        locale.setlocale(locale.LC_TIME, "de_DE.UTF-8")
-    except Exception:
-        pass
+    DAY_MAP = {
+        "Monday": "Montag",
+        "Tuesday": "Dienstag",
+        "Wednesday": "Mittwoch",
+        "Thursday": "Donnerstag",
+        "Friday": "Freitag",
+        "Saturday": "Samstag",
+        "Sunday": "Sonntag",
+    }
 
-    day_name = datetime.now().strftime("%A")
+    day_name = DAY_MAP[datetime.now().strftime("%A")]
 
     return render_template(
         "summary_videos.html",
