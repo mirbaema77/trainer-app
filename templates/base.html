@@ -150,7 +150,7 @@
           right: 0;
           bottom: 0;
 
-          height: 64px; /* ✅ enough for icon + text */
+          height: calc(64px + env(safe-area-inset-bottom, 0));
           padding: 10px 28px calc(env(safe-area-inset-bottom, 0) + 6px); /* ✅ iPhone safe area */
           background-color: #102341;
 
