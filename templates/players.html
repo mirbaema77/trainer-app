@@ -4,7 +4,6 @@
     <meta charset="utf-8">
     <title>Training – Spieleranzahl</title>
 
-    <!-- IMPORTANT: same viewport + PWA as other pages -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#0b1730">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,19 +17,16 @@
             font-family: Arial, sans-serif;
             background-color: #0b1730;
             min-height: 100vh;
+            color: white;
         }
 
-        /* updated: same safe-area layout as other filters */
         .phone {
             width: 100%;
             min-height: 100vh;
             box-sizing: border-box;
-
-            /* add safe-area + extra space from the top and bottom */
             padding: calc(40px + env(safe-area-inset-top, 0))
                      20px
-                     calc(80px + env(safe-area-inset-bottom, 0));
-
+                     calc(90px + env(safe-area-inset-bottom, 0));
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -39,7 +35,7 @@
         .progress {
             display: flex;
             gap: 4px;
-            margin-bottom: 32px;   /* only bottom margin now */
+            margin-bottom: 32px;
             justify-content: center;
         }
 
@@ -61,12 +57,12 @@
             justify-content: center;
             align-items: center;
             text-align: center;
+            width: 100%;
         }
 
         h1 {
             margin: 0 0 28px 0;
             font-size: 26px;
-            color: white;
         }
 
         form {
@@ -91,7 +87,6 @@
             font-size: 22px;
             font-weight: bold;
             margin-top: 10px;
-            color: white;
         }
 
         button.submit-btn {
@@ -110,32 +105,31 @@
             filter: brightness(1.05);
         }
 
-        /* bottom home bar */
+        /* ---------------------------------------------------
+           Bottom Navigation (EXACT copy from base.html)
+        --------------------------------------------------- */
+
         .bottom-nav {
             position: fixed;
             left: 0;
             right: 0;
             bottom: 0;
-
-            height: 48px; /* Netflix-like base height */
+            height: 56px;
             padding-bottom: env(safe-area-inset-bottom, 0);
-
             background-color: #102341;
-            border-radius: 0;
-
             display: flex;
-            justify-content: center;
+            justify-content: space-evenly;
             align-items: center;
-
             box-shadow: 0 -2px 10px rgba(0,0,0,0.25);
             z-index: 1000;
         }
 
-
         .bottom-nav__button {
+            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             text-decoration: none;
             color: #ffffff;
             font-size: 10px;
@@ -148,6 +142,7 @@
         }
     </style>
 </head>
+
 <body>
 <div class="phone">
     <div class="progress">
@@ -181,6 +176,17 @@
 </div>
 
 <nav class="bottom-nav">
+    <a href="{{ url_for('feedback') }}" class="bottom-nav__button">
+        <span class="bottom-nav__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
+                <path d="M8 9h8"></path>
+                <path d="M8 13h5"></path>
+            </svg>
+        </span>
+        <span>Rückmeldung</span>
+    </a>
+
     <a href="{{ url_for('start') }}" class="bottom-nav__button">
         <span class="bottom-nav__icon">
             <svg viewBox="0 0 24 24">
@@ -188,6 +194,16 @@
             </svg>
         </span>
         <span>Startseite</span>
+    </a>
+
+    <a href="{{ url_for('mein_noqe') }}" class="bottom-nav__button">
+        <span class="bottom-nav__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="4"></circle>
+                <path d="M4 20c2-4 6-6 8-6s6 2 8 6"></path>
+            </svg>
+        </span>
+        <span>Mein Noqe</span>
     </a>
 </nav>
 
