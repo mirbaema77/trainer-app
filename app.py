@@ -1217,18 +1217,7 @@ def training_detail(training_id):
 
 @app.route("/players")
 def list_players():
-    if not session.get("coach_id"):
-        session["next_url"] = url_for("list_players")
-        return redirect(url_for("auth_choice"))
-
-    all_players = (
-        Player.query
-        .filter_by(coach_id=session["coach_id"])
-        .order_by(Player.last_name, Player.first_name)
-        .all()
-    )
-    return render_template("players_list.html", players=all_players)
-
+    return redirect(url_for("my_players"))
 
 @app.route("/players/new", methods=["GET", "POST"])
 def new_player():
@@ -1328,6 +1317,10 @@ def suggest_position(player_id):
         top3_positions=top3_positions,
     )
 
+@app.route("/rueckmeldung")
+def feedback():
+    return render_template("feedback.html")
+
 
 @app.route("/players/<int:player_id>/formation", methods=["GET"])
 def select_formation(player_id):
@@ -1380,7 +1373,11 @@ def edit_player_attributes(player_id):
 
         db.session.commit()
 
-        return redirect(url_for("select_formation", player_id=player.id))
+        action = request.form.get("action")
+        if action == "to_formation":
+            return redirect(url_for("select_formation", player_id=player.id))
+
+        return redirect(url_for("my_players"))
 
     return render_template("player_attributes.html", player=player)
 
@@ -1405,6 +1402,9 @@ def admin_reset_db():
     return "Database deleted. Restart app to recreate."
 
 
+@app.route("/spielerposition")
+def position_menu():
+    return render_template("position_menu.html")
 
 
 @app.route("/_admin/download-db")

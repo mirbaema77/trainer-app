@@ -371,9 +371,15 @@
             </div>
 
             <div style="text-align: center; margin: 10px 0 6px;">
-                <button class="btn" type="submit">
-                    Speichern & weiter zur Formation
+                <button class="btn" type="submit" name="action" value="to_formation">
+                  Formation auswählen
                 </button>
+
+                <button class="btn" type="submit" name="action" value="save_back">
+                  Speichern & zurück
+                </button>
+
+
             </div>
 
         </div>
@@ -381,11 +387,6 @@
     </form>
 </div>
 
-<div style="text-align: center; margin-top: 4px;">
-    <a href="{{ url_for('list_players') }}">
-        <button class="btn" type="button">Zurueck zur Uebersicht</button>
-    </a>
-</div>
 
 </div>
 

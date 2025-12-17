@@ -24,6 +24,36 @@
     padding: 12px;
   }
 
+  .player-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  }
+
+  .player-info{
+  flex:1;
+  text-align:left;
+  }
+
+  .small-action{
+  width: 110px;
+  height: 44px;
+  border-radius: 999px;
+  background: #3cff9a;
+  color: #071625;
+  font-weight: 700;
+  font-size: 14px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  text-decoration:none;
+  white-space: nowrap;
+  }
+
+
   .name { font-weight: 700; }
   .sub { font-size: 12px; opacity: 0.85; }
 </style>
@@ -31,18 +61,23 @@
 <div class="page">
   <h1>Meine Spieler</h1>
 
-  {% if players %}
-    <div class="list">
-      {% for p in players %}
-        <div class="card">
-          <div class="name">{{ p.full_name }}</div>
-          <div class="sub">{{ p.position or "Position nicht gesetzt" }}</div>
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p style="text-align:center;opacity:.8;">Noch keine Spieler angelegt.</p>
-  {% endif %}
+    {% if players %}
+      <div class="list">
+        {% for p in players %}
+          <div class="card player-row">
+            <div class="player-info">
+              <div class="name">{{ p.full_name }}</div>
+              <div class="sub">{{ p.position or "Position nicht gesetzt" }}</div>
+            </div>
+
+            <a href="{{ url_for('edit_player_attributes', player_id=p.id) }}" class="small-action">Attribute</a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p style="text-align:center;opacity:.8;">Noch keine Spieler angelegt.</p>
+    {% endif %}
+
 </div>
 
 {% endblock %}

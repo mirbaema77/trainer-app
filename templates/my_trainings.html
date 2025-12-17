@@ -36,6 +36,36 @@
     opacity: 0.85;
     margin-top: 4px;
   }
+
+  .training-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  }
+
+  .training-info{
+  flex:1;
+  text-align:left;
+  }
+
+  .small-action{
+  width: 92px;
+  height: 44px;
+  border-radius: 999px;
+  background: #3cff9a;
+  color: #071625;
+  font-weight: 700;
+  font-size: 14px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  text-decoration:none;
+  white-space: nowrap;
+  }
+
 </style>
 
 <div class="page">
@@ -45,10 +75,16 @@
     <div class="list">
       {% for t in trainings %}
         <div class="card">
-          <div class="title">{{ t.name }}</div>
-          <div class="sub">
-            {{ t.age_group }} · {{ t.focus }} · {{ t.duration }} Min · {{ t.players }} Spieler · {{ t.physical }}
-          </div>
+            <div class="card training-row">
+              <div class="training-info">
+                <div class="title">{{ t.name }}</div>
+                <div class="sub">
+                  {{ t.age_group }} · {{ t.focus }} · {{ t.duration }} Min · {{ t.players }} Spieler · {{ t.physical }}
+                </div>
+              </div>
+
+              <a href="{{ url_for('training_detail', training_id=t.id) }}" class="small-action">Details</a>
+            </div>
         </div>
       {% endfor %}
     </div>

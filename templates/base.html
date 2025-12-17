@@ -191,6 +191,17 @@
 
 {% if show_bottom_nav is not defined or show_bottom_nav %}
 <nav class="bottom-nav">
+  <a href="{{ url_for('feedback') }}" class="bottom-nav__button">
+     <span class="bottom-nav__icon">
+       <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+         <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
+         <path d="M8 9h8"></path>
+         <path d="M8 13h5"></path>
+       </svg>
+     </span>
+     <span>Rückmeldung</span>
+  </a>
+
   <a href="{{ url_for('start') }}" class="bottom-nav__button">
     <span class="bottom-nav__icon">
       <svg viewBox="0 0 24 24">

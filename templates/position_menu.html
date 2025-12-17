@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Spielerposition bestimmen</h1>
+
+<a href="{{ url_for('new_player') }}" style="text-decoration:none;">
+  <button class="btn" type="button" style="width:280px;">Neuer Spieler</button>
+</a>
+
+<a href="{{ url_for('my_players') }}" style="text-decoration:none;">
+  <button class="btn" type="button" style="width:280px;">Meine Spieler</button>
+</a>
+
+{% endblock %}

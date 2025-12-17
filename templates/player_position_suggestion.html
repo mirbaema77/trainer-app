@@ -17,7 +17,7 @@
 
         .pos-header {
             padding: 8px 10px 0 10px;
-            text-align: left;
+            text-align: center;
         }
 
         .pos-header h1 {
@@ -312,19 +312,11 @@
     </div>
 
     <div class="pos-actions">
-        <form method="post">
-            <button class="btn" type="submit" name="action" value="save">
-                Spieler speichern
-            </button>
-        </form>
 
-        <a href="{{ url_for('edit_player_attributes', player_id=player.id) }}">
-            <button class="btn" type="button">Attribute anpassen</button>
+        <a href="{{ url_for('my_players') }}">
+            <button class="btn" type="button">Zurück zu Meine Spieler</button>
         </a>
 
-        <a href="{{ url_for('list_players') }}">
-            <button class="btn" type="button">Zurück zur Übersicht</button>
-        </a>
     </div>
 
 </div>
