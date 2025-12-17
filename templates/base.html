@@ -64,23 +64,22 @@
 
         .btn {
             width: 280px;
-            height: 52px;                 /* ✅ fixed height */
+            height: 52px;
             border-radius: 999px;
             border: none;
             background-color: #3cff9a;
             color: #071625;
-            font-size: 17px;              /* matches age page */
+            font-size: 17px;
             font-weight: 600;
             cursor: pointer;
             margin: 10px auto;
 
-            display: flex;                /* ✅ perfect centering */
+            display: flex;
             align-items: center;
             justify-content: center;
 
-            white-space: nowrap;          /* ✅ no line breaks */
+            white-space: nowrap;
         }
-
 
         input[type="text"],
         input[type="email"],
@@ -142,9 +141,8 @@
         }
 
         /* ---------------------------------------------------
-           Bottom Navigation
+           Bottom Navigation (fixed spacing left/right)
         --------------------------------------------------- */
-
 
         .bottom-nav {
             position: fixed;
@@ -152,21 +150,26 @@
             right: 0;
             bottom: 0;
 
-            height: 48px; /* Netflix-like base height */
+            height: 64px;
             padding-bottom: env(safe-area-inset-bottom, 0);
 
             background-color: #102341;
             border-radius: 0;
 
             display: flex;
-            justify-content: center;
+            justify-content: space-between;   /* ✅ separate items */
             align-items: center;
+
+            padding-left: 36px;              /* ✅ iPhone spacing */
+            padding-right: 36px;             /* ✅ iPhone spacing */
+            box-sizing: border-box;
 
             box-shadow: 0 -2px 10px rgba(0,0,0,0.25);
             z-index: 1000;
         }
 
         .bottom-nav__button {
+            width: 88px;                      /* ✅ prevents merging */
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -192,14 +195,24 @@
 
 {% if show_bottom_nav is not defined or show_bottom_nav %}
 <nav class="bottom-nav">
-    <a href="{{ url_for('start') }}" class="bottom-nav__button">
-        <span class="bottom-nav__icon">
-            <svg viewBox="0 0 24 24">
-                <path d="M4 11.5L12 4l8 7.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-8.5z" fill="white"/>
-            </svg>
-        </span>
-        <span>Startseite</span>
-    </a>
+  <a href="{{ url_for('start') }}" class="bottom-nav__button">
+    <span class="bottom-nav__icon">
+      <svg viewBox="0 0 24 24">
+        <path d="M4 11.5L12 4l8 7.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-8.5z" fill="white"/>
+      </svg>
+    </span>
+    <span>Startseite</span>
+  </a>
+
+  <a href="{{ url_for('mein_noqe') }}" class="bottom-nav__button">
+    <span class="bottom-nav__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"></circle>
+        <path d="M4 20c2-4 6-6 8-6s6 2 8 6"></path>
+      </svg>
+    </span>
+    <span>Mein Noqe</span>
+  </a>
 </nav>
 {% endif %}
 

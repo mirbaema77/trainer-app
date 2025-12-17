@@ -269,9 +269,13 @@
   </div>
 
   <div class="sv-actions">
-    <a href="{{ url_for('start') }}" style="text-decoration:none;">
-      <button class="btn" type="button">Zurück zur Startseite</button>
-    </a>
+  <form method="post" action="{{ url_for('save_training') }}" style="width:100%;">
+    <button class="btn" type="submit" style="width:100%;">Training speichern</button>
+  </form>
+
+  <a href="{{ url_for('choose_age') }}" style="text-decoration:none;">
+    <button class="btn" type="button" style="width:100%;">Neues Training erstellen</button>
+  </a>
   </div>
 
 </div>

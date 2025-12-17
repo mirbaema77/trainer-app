@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .page {
+    width: 100%;
+    min-height: 100vh;
+    box-sizing: border-box;
+    padding: calc(40px + env(safe-area-inset-top, 0)) 20px calc(80px + env(safe-area-inset-bottom, 0));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    text-align: center;
+  }
+
+  h1 { margin: 0 0 18px 0; font-size: 26px; }
+
+  .btn-wide{
+    width: 280px;
+    height: 52px;
+    border-radius: 999px;
+    border: none;
+    background-color: #3cff9a;
+    color: #071625;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+</style>
+
+<div class="page">
+  <h1>Mein Noqe</h1>
+
+  <a href="{{ url_for('my_trainings') }}" style="text-decoration:none;">
+    <button class="btn-wide" type="button">Meine Trainings</button>
+  </a>
+
+  <!-- Route kommt in einem späteren Schritt -->
+  <a href="{{ url_for('my_players') }}" style="text-decoration:none;">
+    <button class="btn-wide" type="button">Meine Spieler</button>
+  </a>
+
+
+</div>
+
+{% endblock %}

@@ -921,6 +921,73 @@ def summary():
 def auth_choice():
     return render_template("auth_choice.html")
 
+@app.route("/mein-noqe")
+def mein_noqe():
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("mein_noqe")
+        return redirect(url_for("auth_choice"))
+    return render_template("mein_noqe.html")
+
+
+@app.route("/mein-noqe/spieler")
+def my_players():
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("my_players")
+        return redirect(url_for("auth_choice"))
+
+    players = (
+        Player.query
+        .filter_by(coach_id=session["coach_id"])
+        .order_by(Player.last_name, Player.first_name)
+        .all()
+    )
+    return render_template("my_players.html", players=players)
+
+@app.route("/save-training", methods=["POST"])
+def save_training():
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("summary")
+        return redirect(url_for("auth_choice"))
+
+    age_group = session.get("age_group")
+    focus = session.get("focus")
+    duration = session.get("duration")
+    players_count = session.get("players")
+    intensity = session.get("physical")
+
+    name = f"{focus or 'Training'} – {duration or '75'} Min"
+
+    t = Training(
+        coach_id=session["coach_id"],
+        name=name,
+        age_group=age_group,
+        focus=focus,
+        duration=int(duration) if duration else None,
+        players=int(players_count) if players_count else None,
+        physical=intensity,
+    )
+    db.session.add(t)
+    db.session.commit()
+
+    return redirect(url_for("my_trainings_page"))
+
+
+@app.route("/mein-noqe/trainings")
+def my_trainings_page():
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("my_trainings_page")
+        return redirect(url_for("auth_choice"))
+
+    trainings = (
+        Training.query
+        .filter_by(coach_id=session["coach_id"])
+        .order_by(Training.created_at.desc())
+        .all()
+    )
+    return render_template("my_trainings.html", trainings=trainings)
+
+
+
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -1096,29 +1163,55 @@ def my_trainings():
     )
     return render_template("my_trainings.html", trainings=trainings)
 
-
 @app.route("/training/<int:training_id>")
 def training_detail(training_id):
     if not session.get("coach_id"):
         session["next_url"] = url_for("training_detail", training_id=training_id)
         return redirect(url_for("auth_choice"))
 
-    training = Training.query.get_or_404(training_id)
-    if training.coach_id != session["coach_id"]:
+    t = Training.query.get_or_404(training_id)
+    if t.coach_id != session["coach_id"]:
         return "Not found", 404
 
-    trainings = find_training_from_excel(
-        age_group=training.age_group,
-        focus=training.focus,
-        duration=training.duration,
-        players_count=training.players,
-        physical=training.physical,
+    # Recreate summary state from saved training
+    age_group = t.age_group
+    focus = t.focus
+    duration_int = int(t.duration) if t.duration else 75
+    players_count = t.players
+    intensity = t.physical
+
+    videos = find_training_videos_from_excel(
+        age_group=age_group,
+        focus=focus,
+        intensity=intensity,
+        players_count=players_count,
     )
 
+    phase_minutes = compute_phase_minutes(age_group, intensity, duration_int)
+    phase_text = compute_phase_text(age_group, focus, intensity)
+
+    DAY_MAP = {
+        "Monday": "Montag",
+        "Tuesday": "Dienstag",
+        "Wednesday": "Mittwoch",
+        "Thursday": "Donnerstag",
+        "Friday": "Freitag",
+        "Saturday": "Samstag",
+        "Sunday": "Sonntag",
+    }
+    day_name = DAY_MAP[datetime.now().strftime("%A")]
+
     return render_template(
-        "training_detail.html",
-        training=training,
-        trainings=trainings,
+        "summary_videos.html",
+        age_group=age_group,
+        focus=focus,
+        duration=duration_int,
+        players=players_count,
+        physical=intensity,
+        videos=videos,
+        day_name=day_name,
+        phase_minutes=phase_minutes,
+        phase_text=phase_text,
     )
 
 

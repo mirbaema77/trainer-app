@@ -9,10 +9,7 @@
     padding: calc(40px + env(safe-area-inset-top, 0)) 20px calc(80px + env(safe-area-inset-bottom, 0));
   }
 
-  h1 {
-    text-align: center;
-    margin-bottom: 16px;
-  }
+  h1 { text-align:center; margin-bottom: 16px; }
 
   .list {
     display: flex;
@@ -21,39 +18,30 @@
   }
 
   .card {
-    background: rgba(16, 35, 65, 0.65);
+    background: rgba(16,35,65,0.65);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 14px;
     padding: 12px;
   }
 
-  .title {
-    font-weight: 700;
-  }
-
-  .sub {
-    font-size: 12px;
-    opacity: 0.85;
-    margin-top: 4px;
-  }
+  .name { font-weight: 700; }
+  .sub { font-size: 12px; opacity: 0.85; }
 </style>
 
 <div class="page">
-  <h1>Meine Trainings</h1>
+  <h1>Meine Spieler</h1>
 
-  {% if trainings %}
+  {% if players %}
     <div class="list">
-      {% for t in trainings %}
+      {% for p in players %}
         <div class="card">
-          <div class="title">{{ t.name }}</div>
-          <div class="sub">
-            {{ t.age_group }} · {{ t.focus }} · {{ t.duration }} Min · {{ t.players }} Spieler · {{ t.physical }}
-          </div>
+          <div class="name">{{ p.full_name }}</div>
+          <div class="sub">{{ p.position or "Position nicht gesetzt" }}</div>
         </div>
       {% endfor %}
     </div>
   {% else %}
-    <p style="text-align:center;opacity:.8;">Du hast noch keine Trainings gespeichert.</p>
+    <p style="text-align:center;opacity:.8;">Noch keine Spieler angelegt.</p>
   {% endif %}
 </div>
 
