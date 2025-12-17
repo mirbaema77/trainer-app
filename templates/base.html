@@ -144,23 +144,24 @@
            Bottom Navigation (fixed spacing left/right)
         --------------------------------------------------- */
 
-        .bottom-nav{
-          position: fixed;
-          left: 0;
-          right: 0;
-          bottom: 0;
+        .bottom-nav {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
 
-          height: calc(64px + env(safe-area-inset-bottom, 0));
-          padding: 10px 28px calc(env(safe-area-inset-bottom, 0) + 6px); /* ✅ iPhone safe area */
-          background-color: #102341;
+            /* 🎯 balanced height for iPhone */
+            height: 56px;
+            padding-bottom: env(safe-area-inset-bottom, 0);
 
-          display: flex;
-          justify-content: space-around;  /* ✅ each item centered in its half */
-          align-items: center;
+            background-color: #102341;
 
-          box-shadow: 0 -2px 10px rgba(0,0,0,0.25);
-          z-index: 1000;
-          box-sizing: border-box;
+            display: flex;
+            justify-content: space-evenly; /* 🔥 equal spacing for 3 items */
+            align-items: center;
+
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.25);
+            z-index: 1000;
         }
 
         .bottom-nav__button{
