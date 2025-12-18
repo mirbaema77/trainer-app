@@ -8,16 +8,78 @@
         <p style="color: #3cff9a; margin-bottom: 10px;"><strong>{{ message }}</strong></p>
     {% endif %}
 
-    <form method="post">
+    <form method="post" style="display:flex; flex-direction:column; align-items:center;">
+
         <input type="text" name="name" placeholder="Name Vorname" required>
 
-        <input
-            type="text"
-            name="birthdate"
-            id="birthdate"
-            placeholder="Geburtsdatum (TT.MM.JJJJ)"
-            inputmode="numeric"
-            maxlength="10">
+        <!-- Birthdate row (centered & same width as inputs) -->
+        <div
+            style="
+                width:280px;
+                display:flex;
+                align-items:center;
+                justify-content:space-between;
+                margin-bottom:14px;
+            "
+        >
+            <input
+                type="text"
+                name="birth_day"
+                id="birth_day"
+                placeholder="Day"
+                inputmode="numeric"
+                maxlength="2"
+                style="
+                    width:72px;
+                    padding:12px;
+                    border-radius:999px;
+                    border:none;
+                    background-color:#e5e5e5;
+                    font-size:15px;
+                    text-align:center;
+                "
+            >
+
+            <span style="opacity:.7;">-</span>
+
+            <input
+                type="text"
+                name="birth_month"
+                id="birth_month"
+                placeholder="Month"
+                inputmode="numeric"
+                maxlength="2"
+                style="
+                    width:72px;
+                    padding:12px;
+                    border-radius:999px;
+                    border:none;
+                    background-color:#e5e5e5;
+                    font-size:15px;
+                    text-align:center;
+                "
+            >
+
+            <span style="opacity:.7;">-</span>
+
+            <input
+                type="text"
+                name="birth_year"
+                id="birth_year"
+                placeholder="Year"
+                inputmode="numeric"
+                maxlength="4"
+                style="
+                    width:96px;
+                    padding:12px;
+                    border-radius:999px;
+                    border:none;
+                    background-color:#e5e5e5;
+                    font-size:15px;
+                    text-align:center;
+                "
+            >
+        </div>
 
         <select name="gender" id="gender-select">
             <option value="">Geschlecht wählen</option>
@@ -35,45 +97,41 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // --- Gender select color ---
     const gender = document.getElementById('gender-select');
     if (gender) {
         function updateColor() {
-            if (gender.value) {
-                gender.classList.add('has-value');
-            } else {
-                gender.classList.remove('has-value');
-            }
+            gender.classList.toggle('has-value', !!gender.value);
         }
         gender.addEventListener('change', updateColor);
         updateColor();
     }
 
-    // --- Birthdate auto-format: TT.MM.JJJJ ---
-    const birthInput = document.getElementById('birthdate');
-    if (birthInput) {
-        birthInput.addEventListener('input', function () {
-            // keep only digits, max 8
-            let v = birthInput.value.replace(/\D/g, '').slice(0, 8);
+    const day = document.getElementById('birth_day');
+    const month = document.getElementById('birth_month');
+    const year = document.getElementById('birth_year');
 
-            let day = v.slice(0, 2);
-            let month = v.slice(2, 4);
-            let year = v.slice(4, 8);
-
-            let formatted = '';
-            if (day) {
-                formatted = day;
-            }
-            if (month) {
-                formatted += '.' + month;
-            }
-            if (year) {
-                formatted += '.' + year;
-            }
-
-            birthInput.value = formatted;
+    function digitsOnly(el, maxLen) {
+        el.addEventListener('input', () => {
+            el.value = el.value.replace(/\D/g, '').slice(0, maxLen);
         });
     }
+
+    function clamp2(el, min, max) {
+        el.addEventListener('blur', () => {
+            if (!el.value) return;
+            let n = parseInt(el.value, 10);
+            if (isNaN(n)) { el.value = ''; return; }
+            n = Math.max(min, Math.min(max, n));
+            el.value = String(n).padStart(2, '0');
+        });
+    }
+
+    digitsOnly(day, 2);
+    digitsOnly(month, 2);
+    digitsOnly(year, 4);
+
+    clamp2(day, 1, 31);
+    clamp2(month, 1, 12);
 });
 </script>
 

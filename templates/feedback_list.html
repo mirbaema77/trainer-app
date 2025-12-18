@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Community Rückmeldungen</h1>
+
+<div style="width:100%;max-width:360px;display:flex;gap:10px;justify-content:center;margin:-10px 0 14px 0;">
+  <a href="{{ url_for('feedback_list', sort='new') }}"
+     style="flex:1;text-align:center;padding:10px 0;border-radius:999px;font-size:12px;text-decoration:none;
+            background:{{ '#3cff9a' if request.args.get('sort','new')=='new' else '#243246' }};
+            color:{{ '#071625' if request.args.get('sort','new')=='new' else 'white' }};">
+    Neueste
+  </a>
+
+  <a href="{{ url_for('feedback_list', sort='top') }}"
+     style="flex:1;text-align:center;padding:10px 0;border-radius:999px;font-size:12px;text-decoration:none;
+            background:{{ '#3cff9a' if request.args.get('sort')=='top' else '#243246' }};
+            color:{{ '#071625' if request.args.get('sort')=='top' else 'white' }};">
+    Beliebt
+  </a>
+</div>
+
+<div style="width:100%;max-width:360px;margin-top:6px;">
+  {% if feedback_items and feedback_items|length > 0 %}
+    {% for fb in feedback_items %}
+      {% set counts = vote_counts.get(fb.id, {"likes": 0, "dislikes": 0}) %}
+      {% set my = my_votes.get(fb.id, 0) %}
+
+      <div style="
+        background:#102341;
+        border-radius:16px;
+        padding:14px 14px;
+        margin-bottom:12px;
+        text-align:left;
+        box-shadow:0 2px 10px rgba(0,0,0,0.18);
+      ">
+        <div style="white-space:pre-wrap; font-size:15px; line-height:1.35;">
+          {{ fb.text }}
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;">
+          <div style="font-size:12px; opacity:.75;">
+            {{ fb.created_at.strftime('%d.%m.%Y %H:%M') }}
+          </div>
+
+          <div style="display:flex; gap:10px; align-items:center;">
+            <form method="post" action="{{ url_for('feedback_vote', feedback_id=fb.id, sort=request.args.get('sort','new')) }}" style="margin:0;">
+              <input type="hidden" name="value" value="1">
+              <button type="submit" style="
+                border:none;
+                border-radius:999px;
+                padding:8px 12px;
+                font-size:12px;
+                cursor:pointer;
+                background: {{ '#3cff9a' if my == 1 else '#243246' }};
+                color: {{ '#071625' if my == 1 else 'white' }};
+              ">
+                👍 {{ counts.likes }}
+              </button>
+            </form>
+
+            <form method="post" action="{{ url_for('feedback_vote', feedback_id=fb.id, sort=request.args.get('sort','new')) }}" style="margin:0;">
+              <input type="hidden" name="value" value="-1">
+              <button type="submit" style="
+                border:none;
+                border-radius:999px;
+                padding:8px 12px;
+                font-size:12px;
+                cursor:pointer;
+                background: {{ '#3cff9a' if my == -1 else '#243246' }};
+                color: {{ '#071625' if my == -1 else 'white' }};
+              ">
+                👎 {{ counts.dislikes }}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p style="opacity:.85; text-align:center;">
+      Noch keine Rückmeldungen vorhanden.
+    </p>
+  {% endif %}
+</div>
+
+{% endblock %}

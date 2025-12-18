@@ -2,6 +2,9 @@ from flask import Flask, render_template, request, redirect, url_for, session, s
 import os
 from email_utils import send_email
 
+from sqlalchemy import func, case
+
+
 from datetime import datetime
 import locale
 
@@ -355,6 +358,27 @@ class Training(db.Model):
     physical = db.Column(db.String(50))
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+from sqlalchemy import UniqueConstraint  # add near your other imports (top area)
+
+class Feedback(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    coach_id = db.Column(db.Integer, db.ForeignKey("coach.id"), nullable=False)
+    text = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+class FeedbackVote(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    feedback_id = db.Column(db.Integer, db.ForeignKey("feedback.id"), nullable=False)
+    coach_id = db.Column(db.Integer, db.ForeignKey("coach.id"), nullable=False)
+    value = db.Column(db.Integer, nullable=False)  # +1 or -1
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("feedback_id", "coach_id", name="uq_feedback_coach_vote"),
+    )
+
+
 
 if os.getenv("RESET_DB") == "1":
     try:
@@ -1317,9 +1341,198 @@ def suggest_position(player_id):
         top3_positions=top3_positions,
     )
 
+from sqlalchemy import func  # add near imports at top if not present
+
 @app.route("/rueckmeldung")
 def feedback():
-    return render_template("feedback.html")
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("feedback")
+        return redirect(url_for("auth_choice"))
+
+    coach_id = session["coach_id"]
+
+    sort = request.args.get("sort", "new")
+
+    if sort == "top":
+        rows = (
+            db.session.query(
+                Feedback,
+                func.sum(case((FeedbackVote.value == 1, 1), else_=0)).label("likes"),
+                func.sum(case((FeedbackVote.value == -1, 1), else_=0)).label("dislikes"),
+            )
+            .outerjoin(FeedbackVote, FeedbackVote.feedback_id == Feedback.id)
+            .group_by(Feedback.id)
+            .order_by(
+                (func.sum(case((FeedbackVote.value == 1, 1), else_=0)) -
+                 func.sum(case((FeedbackVote.value == -1, 1), else_=0))).desc(),
+                Feedback.created_at.desc()
+            )
+
+            .all()
+        )
+        feedback_items = [row[0] for row in rows]
+    else:
+        feedback_items = (
+            Feedback.query
+            .order_by(Feedback.created_at.desc())
+            .all()
+        )
+
+    rows = (
+        db.session.query(
+            FeedbackVote.feedback_id,
+            func.sum(case((FeedbackVote.value == 1, 1), else_=0)).label("likes"),
+            func.sum(case((FeedbackVote.value == -1, 1), else_=0)).label("dislikes"),
+        )
+        .group_by(FeedbackVote.feedback_id)
+        .all()
+    )
+
+    vote_counts = {
+        fid: {"likes": int(likes or 0), "dislikes": int(dislikes or 0)}
+        for fid, likes, dislikes in rows
+    }
+
+    my_votes = dict(
+        db.session.query(FeedbackVote.feedback_id, FeedbackVote.value)
+        .filter(FeedbackVote.coach_id == coach_id)
+        .all()
+    )
+
+    return render_template(
+        "feedback.html",
+        feedback_items=feedback_items,
+        vote_counts=vote_counts,
+        my_votes=my_votes,
+    )
+
+
+@app.route("/rueckmeldung/new", methods=["POST"])
+def feedback_new():
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("feedback")
+        return redirect(url_for("auth_choice"))
+
+    text = (request.form.get("text") or "").strip()
+    if not text:
+        return redirect(url_for("feedback"))
+
+    if len(text) > 500:
+        text = text[:500]
+
+    fb = Feedback(
+        coach_id=session["coach_id"],
+        text=text,
+    )
+    db.session.add(fb)
+    db.session.commit()
+
+    ref = request.referrer
+    if ref:
+        return redirect(ref)
+    sort = request.args.get("sort")
+    return redirect(url_for("feedback", sort=sort) if sort else url_for("feedback"))
+
+
+@app.route("/rueckmeldung/<int:feedback_id>/vote", methods=["POST"])
+def feedback_vote(feedback_id):
+    if not session.get("coach_id"):
+        return redirect(url_for("auth_choice"))
+
+    value = request.form.get("value")
+    if value not in ("1", "-1"):
+        return redirect(url_for("feedback"))
+
+    value = int(value)
+    coach_id = session["coach_id"]
+
+    existing = FeedbackVote.query.filter_by(
+        feedback_id=feedback_id,
+        coach_id=coach_id
+    ).first()
+
+    if existing:
+        if existing.value == value:
+            db.session.delete(existing)   # toggle off
+        else:
+            existing.value = value        # switch vote
+    else:
+        vote = FeedbackVote(
+            feedback_id=feedback_id,
+            coach_id=coach_id,
+            value=value
+        )
+        db.session.add(vote)
+
+    db.session.commit()
+    ref = request.referrer
+    if ref:
+        return redirect(ref)
+    sort = request.args.get("sort")
+    sort = request.args.get("sort", "new")
+    return redirect(url_for("feedback_list", sort=sort))
+
+@app.route("/rueckmeldung/alle")
+def feedback_list():
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("feedback_list")
+        return redirect(url_for("auth_choice"))
+
+    sort = request.args.get("sort", "new")
+    coach_id = session["coach_id"]
+
+    if sort == "top":
+        rows = (
+            db.session.query(
+                Feedback,
+                func.sum(case((FeedbackVote.value == 1, 1), else_=0)).label("likes"),
+                func.sum(case((FeedbackVote.value == -1, 1), else_=0)).label("dislikes"),
+            )
+            .outerjoin(FeedbackVote, FeedbackVote.feedback_id == Feedback.id)
+            .group_by(Feedback.id)
+            .order_by(
+                (func.sum(case((FeedbackVote.value == 1, 1), else_=0)) -
+                 func.sum(case((FeedbackVote.value == -1, 1), else_=0))).desc(),
+                Feedback.created_at.desc()
+            )
+            .all()
+        )
+        feedback_items = [row[0] for row in rows]
+    else:
+        feedback_items = (
+            Feedback.query
+            .order_by(Feedback.created_at.desc())
+            .all()
+        )
+
+    rows = (
+        db.session.query(
+            FeedbackVote.feedback_id,
+            func.sum(case((FeedbackVote.value == 1, 1), else_=0)).label("likes"),
+            func.sum(case((FeedbackVote.value == -1, 1), else_=0)).label("dislikes"),
+        )
+        .group_by(FeedbackVote.feedback_id)
+        .all()
+    )
+
+    vote_counts = {
+        fid: {"likes": int(likes or 0), "dislikes": int(dislikes or 0)}
+        for fid, likes, dislikes in rows
+    }
+
+    my_votes = dict(
+        db.session.query(FeedbackVote.feedback_id, FeedbackVote.value)
+        .filter(FeedbackVote.coach_id == coach_id)
+        .all()
+    )
+
+    return render_template(
+        "feedback_list.html",
+        feedback_items=feedback_items,
+        vote_counts=vote_counts,
+        my_votes=my_votes,
+    )
+
 
 
 @app.route("/players/<int:player_id>/formation", methods=["GET"])
