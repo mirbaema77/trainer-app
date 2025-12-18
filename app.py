@@ -20,7 +20,8 @@ import pandas as pd
 
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
-from ml_model import recommend_position_from_attributes, map_form_to_model_features
+from ml_model import recommend_position_from_attributes, map_form_to_model_features, predict_position_proba_all
+
 
 #trainer-app-production-cf65.up.railway.app/_admin/download-db?token=<DEIN-DB_ADMIN_TOKEN>
 
@@ -240,6 +241,26 @@ def normalize_for_formation(code: str) -> str:
     if code in ("CDM", "CAM"):
         return code
     return code
+
+
+def adjust_position_by_preferred_foot(position: str, preferred_foot: str | None) -> str:
+    if not position or not preferred_foot:
+        return position
+
+    pf = preferred_foot.lower()
+
+    left_positions = {"LM", "LW", "LB", "LWB"}
+    right_positions = {"RM", "RW", "RB", "RWB"}
+
+    if position in left_positions and pf == "right":
+        return position.replace("L", "R", 1)
+
+    if position in right_positions and pf == "left":
+        return position.replace("R", "L", 1)
+
+    return position
+
+
 
 
 app = Flask(__name__)
@@ -758,6 +779,75 @@ def debug_videos():
     )
     return {"videos": videos}
 
+
+def _max_weight_assignment(scores: list[list[float]]) -> list[int]:
+    """
+    Hungarian algorithm (maximization).
+    scores: rows=slots, cols=players
+    returns: assignment[row] = chosen col index
+    """
+    import math
+
+    n = len(scores)
+    m = len(scores[0]) if n else 0
+    N = max(n, m)
+
+    # build cost matrix for minimization
+    maxv = max((scores[i][j] for i in range(n) for j in range(m)), default=0.0)
+    cost = [[maxv for _ in range(N)] for _ in range(N)]
+    for i in range(n):
+        for j in range(m):
+            cost[i][j] = maxv - scores[i][j]
+
+    u = [0.0]*(N+1)
+    v = [0.0]*(N+1)
+    p = [0]*(N+1)
+    way = [0]*(N+1)
+
+    for i in range(1, N+1):
+        p[0] = i
+        j0 = 0
+        minv = [math.inf]*(N+1)
+        used = [False]*(N+1)
+        while True:
+            used[j0] = True
+            i0 = p[j0]
+            delta = math.inf
+            j1 = 0
+            for j in range(1, N+1):
+                if not used[j]:
+                    cur = cost[i0-1][j-1] - u[i0] - v[j]
+                    if cur < minv[j]:
+                        minv[j] = cur
+                        way[j] = j0
+                    if minv[j] < delta:
+                        delta = minv[j]
+                        j1 = j
+            for j in range(N+1):
+                if used[j]:
+                    u[p[j]] += delta
+                    v[j] -= delta
+                else:
+                    minv[j] -= delta
+            j0 = j1
+            if p[j0] == 0:
+                break
+        while True:
+            j1 = way[j0]
+            p[j0] = p[j1]
+            j0 = j1
+            if j0 == 0:
+                break
+
+    assignment = [-1]*N
+    for j in range(1, N+1):
+        if p[j] != 0:
+            assignment[p[j]-1] = j-1
+    return assignment[:n]
+
+
+
+
 @app.route("/_debug/video-values")
 def debug_video_values():
     df = pd.read_excel(VIDEO_EXCEL_PATH)
@@ -783,6 +873,9 @@ def debug_video_values():
         "spieleranzahl_examples": sorted({str(x).strip() for x in df["Spieleranzahl"].dropna().tolist()})[:25],
         "drive_col_used": drive_col
     }
+
+
+
 
 @app.route("/_debug/thumbs")
 def debug_thumbs():
@@ -1174,6 +1267,67 @@ def logout():
     return redirect(url_for("home"))
 
 
+@app.route("/teamformation")
+def teamformation_menu():
+    return render_template("teamformation_menu.html")
+
+
+
+@app.route("/teamformation/spielidee/q1", methods=["GET", "POST"])
+def formation_gameplan_q1():
+    if request.method == "POST":
+        session["gp_q1"] = request.form.get("defensive_height", "mid")
+        return redirect(url_for("formation_gameplan_q2"))
+    return render_template("formation_gameplan_q1.html")
+
+
+@app.route("/teamformation/spielidee/q2", methods=["GET", "POST"])
+def formation_gameplan_q2():
+    if request.method == "POST":
+        # values: direct | mixed | short
+        session["gp_q2"] = request.form.get("build_up", "mixed")
+        return redirect(url_for("formation_gameplan_q3"))
+    return render_template("formation_gameplan_q2.html")
+
+
+@app.route("/teamformation/spielidee/q3", methods=["GET", "POST"])
+def formation_gameplan_q3():
+    if request.method == "POST":
+        session["gp_q3"] = request.form.get("attack_zone", "balanced")
+        return redirect(url_for("formation_gameplan_q4"))
+    return render_template("formation_gameplan_q3.html")
+
+@app.route("/teamformation/spielidee/q4", methods=["GET", "POST"])
+def formation_gameplan_q4():
+    if request.method == "POST":
+        session["gp_q4"] = request.form.get("after_loss", "balanced")
+        return redirect(url_for("formation_gameplan_q5"))
+    return render_template("formation_gameplan_q4.html")
+
+
+@app.route("/teamformation/spielidee/q5", methods=["GET", "POST"])
+def formation_gameplan_q5():
+    if request.method == "POST":
+        session["gp_q5"] = request.form.get("risk", "balanced")
+        return redirect(url_for("formation_gameplan_result"))
+    return render_template("formation_gameplan_q5.html")
+
+
+@app.route("/teamformation/spielidee/result", methods=["GET"])
+def formation_gameplan_result():
+    rec = recommend_formation_from_gameplan(session)
+    formation = rec["best"]
+
+    return render_template(
+        "formation_gameplan_result.html",
+        best=formation,
+        alternatives=rec["alternatives"],
+        explanation=rec["explanation"],
+        slots=FORMATION_SLOTS[formation],
+    )
+
+
+
 @app.route("/my-trainings")
 def my_trainings():
     if not session.get("coach_id"):
@@ -1327,6 +1481,11 @@ def suggest_position(player_id):
 
     best_code, best_prob = top3[0]
 
+    best_code = adjust_position_by_preferred_foot(
+        best_code,
+        player.preferred_foot
+    )
+
     formation_def = FORMATION_SLOTS.get(formation, FORMATION_SLOTS["4-3-3"])
     highlight_code = get_highlight_code_for_formation(best_code, formation)
     highlight_percent = f"{best_prob * 100:.1f}%"
@@ -1340,6 +1499,337 @@ def suggest_position(player_id):
         highlight_percent=highlight_percent,
         top3_positions=top3_positions,
     )
+
+
+@app.route("/teamformation/kader", methods=["GET", "POST"])
+def formation_with_squad_start():
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("formation_with_squad_start")
+        return redirect(url_for("auth_choice"))
+
+    players = (
+        Player.query
+        .filter_by(coach_id=session["coach_id"])
+        .order_by(Player.last_name, Player.first_name)
+        .all()
+    )
+
+    if request.method == "POST":
+        # mode: "all" or "select"
+        mode = request.form.get("mode", "all")
+
+        if mode == "all":
+            selected_ids = [str(p.id) for p in players]
+        else:
+            selected_ids = request.form.getlist("player_ids")
+
+        session["formation_selected_player_ids"] = selected_ids
+        return redirect(url_for("formation_with_squad_select_formation"))
+
+    return render_template("formation_with_squad_players.html", players=players)
+
+
+@app.route("/teamformation/kader/formation", methods=["GET", "POST"])
+def formation_with_squad_select_formation():
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("formation_with_squad_select_formation")
+        return redirect(url_for("auth_choice"))
+
+    selected_ids = session.get("formation_selected_player_ids", [])
+    if not selected_ids:
+        return redirect(url_for("formation_with_squad_start"))
+
+    formations = list(FORMATION_SLOTS.keys())
+
+    if request.method == "POST":
+        formation = request.form.get("formation", "4-3-3")
+        session["formation_selected_formation"] = formation
+        return redirect(url_for("formation_with_squad_result"))
+
+    return render_template("formation_with_squad_select_formation.html", formations=formations)
+
+
+# -----------------------------
+# Formation nach Spielidee – MVP logic
+# -----------------------------
+
+FORMATION_PROFILE = {
+    "4-3-3":   {"press": 0.9, "build_up": 0.6, "width": 0.9,  "transition": 0.8, "risk": 0.7},
+    "4-2-3-1": {"press": 0.7, "build_up": 0.7, "width": 0.6,  "transition": 0.6, "risk": 0.5},
+    "4-4-2":   {"press": 0.5, "build_up": 0.4, "width": 0.6,  "transition": 0.5, "risk": 0.4},
+    "3-5-2":   {"press": 0.6, "build_up": 0.6, "width": 0.4,  "transition": 0.7, "risk": 0.6},
+    "3-4-3":   {"press": 0.9, "build_up": 0.5, "width": 0.85, "transition": 0.8, "risk": 0.8},
+}
+
+ANSWER_TO_VALUE = {
+    "gp_q1": {"low": 0.2, "mid": 0.5, "high": 0.9},              # press
+    "gp_q2": {"direct": 0.2, "mixed": 0.5, "short": 0.9},        # build_up
+    "gp_q3": {"central": 0.2, "balanced": 0.5, "wide": 0.9},     # width
+    "gp_q4": {"drop": 0.2, "balanced": 0.5, "counterpress": 0.9},# transition
+    "gp_q5": {"safe": 0.2, "balanced": 0.5, "risky": 0.9},       # risk
+}
+
+def _build_gameplan_target_from_session(sess) -> dict:
+    q1 = sess.get("gp_q1", "mid")
+    q2 = sess.get("gp_q2", "mixed")
+    q3 = sess.get("gp_q3", "balanced")
+    q4 = sess.get("gp_q4", "balanced")
+    q5 = sess.get("gp_q5", "balanced")
+
+    target = {
+        "press":      ANSWER_TO_VALUE["gp_q1"].get(q1, 0.5),
+        "build_up":   ANSWER_TO_VALUE["gp_q2"].get(q2, 0.5),
+        "width":      ANSWER_TO_VALUE["gp_q3"].get(q3, 0.5),
+        "transition": ANSWER_TO_VALUE["gp_q4"].get(q4, 0.5),
+        "risk":       ANSWER_TO_VALUE["gp_q5"].get(q5, 0.5),
+    }
+    return target
+
+def _score_formation(profile: dict, target: dict) -> float:
+    # score in [0..5] (higher is better)
+    return sum(1.0 - abs(profile[k] - target[k]) for k in target.keys())
+
+def recommend_formation_from_gameplan(sess) -> dict:
+    target = _build_gameplan_target_from_session(sess)
+
+    scored = []
+    for formation, profile in FORMATION_PROFILE.items():
+        scored.append((formation, _score_formation(profile, target)))
+
+    scored.sort(key=lambda x: x[1], reverse=True)
+
+    best = scored[0][0]
+    alternatives = [f for f, _ in scored[1:3]]
+
+    # MVP explanation: based on the answers (not on formation internals)
+    expl = []
+    q1 = sess.get("gp_q1", "mid")
+    q2 = sess.get("gp_q2", "mixed")
+    q3 = sess.get("gp_q3", "balanced")
+    q4 = sess.get("gp_q4", "balanced")
+    q5 = sess.get("gp_q5", "balanced")
+
+    if q1 == "high":
+        expl.append("passt zu hohem Pressing")
+    elif q1 == "low":
+        expl.append("passt zu tiefem Verteidigen")
+    else:
+        expl.append("passt zu einem mittleren Block")
+
+    if q2 == "short":
+        expl.append("unterstützt Kurzpass-Spielaufbau")
+    elif q2 == "direct":
+        expl.append("unterstützt direktes Spiel")
+    else:
+        expl.append("passt zu gemischtem Spielaufbau")
+
+    if q3 == "wide":
+        expl.append("passt zu Flügelangriffen")
+    elif q3 == "central":
+        expl.append("passt zu zentralen Angriffen")
+    else:
+        expl.append("passt zu ausgewogenem Angriffsspiel")
+
+    if q4 == "counterpress":
+        expl.append("passt zu sofortigem Gegenpressing")
+    elif q4 == "drop":
+        expl.append("passt zu schneller Ordnung nach Ballverlust")
+    else:
+        expl.append("passt zu ausgewogenem Umschaltverhalten")
+
+    if q5 == "risky":
+        expl.append("ermöglicht höheres Risiko")
+    elif q5 == "safe":
+        expl.append("unterstützt Sicherheit und Stabilität")
+    else:
+        expl.append("passt zu ausgewogenem Risiko")
+
+    return {
+        "best": best,
+        "alternatives": alternatives,
+        "scores": scored,
+        "target": target,
+        "explanation": expl[:4],  # keep it short on mobile
+    }
+
+
+def _slot_score_for_player(slot_code: str, proba_map: dict, formation: str) -> float:
+    """
+    Score a player for a slot.
+    Uses exact slot code if available, else tries POSITION_SIMILAR, else striker aliases → ST, else small fallback.
+    """
+    formation_def = FORMATION_SLOTS.get(formation, FORMATION_SLOTS["4-3-3"])
+    slot_codes = {s["code_key"] for s in formation_def}
+
+    # direct
+    if slot_code in proba_map:
+        return proba_map.get(slot_code, 0.0)
+
+    # try similars
+    for cand in POSITION_SIMILAR.get(slot_code, []):
+        if cand in slot_codes and cand in proba_map:
+            return proba_map.get(cand, 0.0)
+
+    # striker aliases
+    striker_aliases = {"CF", "LF", "RF", "LS", "RS"}
+    if slot_code in striker_aliases and "ST" in proba_map:
+        return proba_map.get("ST", 0.0)
+
+    # fallback: best known prob (small)
+    return max(proba_map.values()) * 0.25 if proba_map else 0.0
+
+
+@app.route("/teamformation/kader/result", methods=["GET"])
+def formation_with_squad_result():
+    if not session.get("coach_id"):
+        session["next_url"] = url_for("formation_with_squad_result")
+        return redirect(url_for("auth_choice"))
+
+    selected_ids = session.get("formation_selected_player_ids", [])
+    formation = session.get("formation_selected_formation", "4-3-3")
+
+    if not selected_ids:
+        return redirect(url_for("formation_with_squad_start"))
+
+    players = (
+        Player.query
+        .filter(Player.coach_id == session["coach_id"])
+        .filter(Player.id.in_([int(x) for x in selected_ids]))
+        .order_by(Player.last_name, Player.first_name)
+        .all()
+    )
+
+    # Need enough players for outfield slots
+    slots_all = FORMATION_SLOTS.get(formation, FORMATION_SLOTS["4-3-3"])
+    outfield_slots = [s for s in slots_all if s["code_key"] != "GK"]
+    if len(players) < len(outfield_slots):
+        # still render with empties
+        pass
+
+    # --- Build probability maps per player ---
+    player_probas = {}
+    for p in players:
+        attrs = map_form_to_model_features({
+            "speed": p.speed,
+            "stamina": p.stamina,
+            "strength": p.strength,
+            "aggression": p.aggression,
+            "tackling": p.tackling,
+            "height_cm": p.height_cm or 180,
+            "weight_kg": p.weight_kg or 70,
+            "first_touch": p.first_touch,
+            "dribbling": p.dribbling,
+            "short_passing": p.short_passing,
+            "long_passing": p.long_passing,
+            "finishing": p.finishing,
+            "shooting_power": p.shooting_power,
+            "decision_making": p.decision_making,
+        })
+        player_probas[p.id] = predict_position_proba_all(attrs)
+
+    # --- Hungarian assignment (max weight) ---
+    def _max_weight_assignment(scores: list[list[float]]) -> list[int]:
+        """
+        Hungarian algorithm (maximization).
+        scores: rows=slots, cols=players
+        returns: assignment[row] = chosen col index
+        """
+        import math
+
+        n = len(scores)
+        m = len(scores[0]) if n else 0
+        N = max(n, m)
+
+        maxv = max((scores[i][j] for i in range(n) for j in range(m)), default=0.0)
+        cost = [[maxv for _ in range(N)] for _ in range(N)]
+        for i in range(n):
+            for j in range(m):
+                cost[i][j] = maxv - scores[i][j]
+
+        u = [0.0] * (N + 1)
+        v = [0.0] * (N + 1)
+        p = [0] * (N + 1)
+        way = [0] * (N + 1)
+
+        for i in range(1, N + 1):
+            p[0] = i
+            j0 = 0
+            minv = [math.inf] * (N + 1)
+            used = [False] * (N + 1)
+            while True:
+                used[j0] = True
+                i0 = p[j0]
+                delta = math.inf
+                j1 = 0
+                for j in range(1, N + 1):
+                    if not used[j]:
+                        cur = cost[i0 - 1][j - 1] - u[i0] - v[j]
+                        if cur < minv[j]:
+                            minv[j] = cur
+                            way[j] = j0
+                        if minv[j] < delta:
+                            delta = minv[j]
+                            j1 = j
+                for j in range(N + 1):
+                    if used[j]:
+                        u[p[j]] += delta
+                        v[j] -= delta
+                    else:
+                        minv[j] -= delta
+                j0 = j1
+                if p[j0] == 0:
+                    break
+            while True:
+                j1 = way[j0]
+                p[j0] = p[j1]
+                j0 = j1
+                if j0 == 0:
+                    break
+
+        assignment = [-1] * N
+        for j in range(1, N + 1):
+            if p[j] != 0:
+                assignment[p[j] - 1] = j - 1
+        return assignment[:n]
+
+    # Build score matrix for outfield slots
+    player_list = list(players)
+    score_matrix = []
+    for slot in outfield_slots:
+        code = slot["code_key"]
+        row = []
+        for pl in player_list:
+            row.append(_slot_score_for_player(code, player_probas.get(pl.id, {}), formation))
+        score_matrix.append(row)
+
+    assignment = _max_weight_assignment(score_matrix)
+
+    # Build lineup: keep GK empty, assign best matches, allow empties if not enough players
+    used_player_cols = set()
+    lineup = []
+
+    # add GK slot (empty) in correct place if formation has GK
+    for s in slots_all:
+        if s["code_key"] == "GK":
+            lineup.append({"slot": s, "player": None})
+            break
+
+    for i, slot in enumerate(outfield_slots):
+        j = assignment[i] if i < len(assignment) else -1
+        chosen = None
+        if 0 <= j < len(player_list) and j not in used_player_cols:
+            used_player_cols.add(j)
+            chosen = player_list[j]
+
+        lineup.append({"slot": slot, "player": chosen})
+
+    return render_template(
+        "formation_with_squad_result.html",
+        formation=formation,
+        lineup=lineup
+    )
+
+
 
 from sqlalchemy import func  # add near imports at top if not present
 

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="content">
+  <h1>Formation mit meinem Kader</h1>
+
+  <form method="POST">
+    <button class="btn" type="submit" name="mode" value="all">Alle Spieler verwenden</button>
+
+    <h2 style="margin-top:20px;">Verfügbare Spieler auswählen</h2>
+
+    {% for p in players %}
+      <div style="margin:8px 0;">
+        <label>
+          <input type="checkbox" name="player_ids" value="{{ p.id }}">
+          {{ p.last_name }} {{ p.first_name }}
+        </label>
+      </div>
+    {% endfor %}
+
+    <button class="btn" type="submit" name="mode" value="select" style="margin-top:16px;">
+      Mit Auswahl weiter
+    </button>
+  </form>
+</div>
+
+{% endblock %}

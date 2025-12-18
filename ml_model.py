@@ -167,3 +167,22 @@ def map_form_to_model_features(form):
     attrs["Long shots"] = 5.0
 
     return attrs
+
+
+def predict_position_proba_all(attrs: dict) -> dict:
+    """
+    Returns dict: {position_code: prob} for ALL classes.
+    attrs: keys like FEATURE_COLS, values 1–10.
+    """
+    if position_model is None:
+        return {}
+
+    X = _prepare_feature_vector(attrs)
+    proba = position_model.predict_proba(X)[0]
+
+    classes = position_model.classes_ if not hasattr(position_model, "named_steps") \
+        else position_model.named_steps["rf"].classes_
+
+    proba_sharp = _sharpen_proba(proba, gamma=1.5)
+    return {cls: float(p) for cls, p in zip(classes, proba_sharp)}
+

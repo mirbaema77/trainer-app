@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="pos-page">
+
+  <div class="pos-header">
+    <h1>Empfohlene Aufstellung</h1>
+    <div class="pos-subtitle">{{ formation }}</div>
+  </div>
+
+  <style>
+  .pos-page { flex: 1; display: flex; flex-direction: column; }
+  .pos-header { padding: 8px 10px 0 10px; text-align: center; }
+  .pos-header h1 { margin: 0; font-size: 18px; line-height: 1.2; white-space: nowrap; }
+  .pos-subtitle { font-size: 13px; margin-top: 2px; opacity: 0.9; }
+
+  .pitch-wrapper { flex: 1; padding: 6px 10px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
+
+  .pitch {
+    position: relative;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+    padding-top: 150%;
+    border-radius: 22px;
+    overflow: hidden;
+    background: radial-gradient(circle at 30% 0%, #1b7c4b 0%, #0b3a25 35%, #071522 100%);
+    box-shadow: 0 0 18px rgba(0,0,0,0.7);
+  }
+  .pitch::before {
+    content: "";
+    position: absolute;
+    inset: 7% 8%;
+    border: 2px solid rgba(255,255,255,0.30);
+    border-radius: 18px;
+  }
+  .pitch::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 8%;
+    right: 8%;
+    height: 2px;
+    background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.35), rgba(255,255,255,0));
+    transform: translateY(-50%);
+  }
+  .pitch-center-circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 26%;
+    height: 26%;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.28);
+    transform: translate(-50%, -50%);
+  }
+
+  .position-circle {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    line-height: 1.05;
+    padding: 2px;
+    transform: translate(-50%, -50%);
+  }
+  .position-circle--empty {
+    background: radial-gradient(circle at 30% 0%, rgba(255,255,255,0.15), rgba(5, 12, 30, 0.85));
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #f8f9ff;
+  }
+  .position-circle--filled {
+    background: radial-gradient(circle at 30% 0%, #b5ffd9, #3cff9a);
+    color: #02101e;
+    border: 2px solid rgba(255,255,255,0.9);
+  }
+  .position-circle-code { font-weight: bold; margin-bottom: 1px; }
+  .position-circle-name { font-size: 7.5px; }
+
+  /* 4-3-3 */
+  .slot-433-gk   { top: 86%; left: 50%; }
+  .slot-433-lb   { top: 72%; left: 25%; }
+  .slot-433-lcb  { top: 68%; left: 40%; }
+  .slot-433-rcb  { top: 68%; left: 60%; }
+  .slot-433-rb   { top: 72%; left: 75%; }
+  .slot-433-lcm  { top: 54%; left: 30%; }
+  .slot-433-cm   { top: 50%; left: 50%; }
+  .slot-433-rcm  { top: 54%; left: 70%; }
+  .slot-433-lw   { top: 32%; left: 25%; }
+  .slot-433-st   { top: 26%; left: 50%; }
+  .slot-433-rw   { top: 32%; left: 75%; }
+
+  /* 4-4-2 */
+  .slot-442-gk   { top: 86%; left: 50%; }
+  .slot-442-lb   { top: 72%; left: 25%; }
+  .slot-442-lcb  { top: 68%; left: 40%; }
+  .slot-442-rcb  { top: 68%; left: 60%; }
+  .slot-442-rb   { top: 72%; left: 75%; }
+  .slot-442-lm   { top: 54%; left: 25%; }
+  .slot-442-lcm  { top: 50%; left: 40%; }
+  .slot-442-rcm  { top: 50%; left: 60%; }
+  .slot-442-rm   { top: 54%; left: 75%; }
+  .slot-442-lst  { top: 30%; left: 40%; }
+  .slot-442-rst  { top: 30%; left: 60%; }
+
+  /* 4-2-3-1 (also used by 4-1-4-1 / parts) */
+  .slot-4231-gk  { top: 86%; left: 50%; }
+  .slot-4231-lb  { top: 72%; left: 25%; }
+  .slot-4231-lcb { top: 68%; left: 40%; }
+  .slot-4231-rcb { top: 68%; left: 60%; }
+  .slot-4231-rb  { top: 72%; left: 75%; }
+  .slot-4231-ldm { top: 58%; left: 40%; }
+  .slot-4231-rdm { top: 58%; left: 60%; }
+  .slot-4231-lam { top: 42%; left: 30%; }
+  .slot-4231-cam { top: 38%; left: 50%; }
+  .slot-4231-ram { top: 42%; left: 70%; }
+  .slot-4231-st  { top: 24%; left: 50%; }
+
+  /* 3-5-2 */
+  .slot-352-gk   { top: 86%; left: 50%; }
+  .slot-352-lcb  { top: 70%; left: 30%; }
+  .slot-352-cb   { top: 68%; left: 50%; }
+  .slot-352-rcb  { top: 70%; left: 70%; }
+  .slot-352-lwb  { top: 58%; left: 22%; }
+  .slot-352-lcm  { top: 52%; left: 38%; }
+  .slot-352-cm   { top: 48%; left: 50%; }
+  .slot-352-rcm  { top: 52%; left: 62%; }
+  .slot-352-rwb  { top: 58%; left: 78%; }
+  .slot-352-lst  { top: 32%; left: 42%; }
+  .slot-352-rst  { top: 32%; left: 58%; }
+
+  /* 3-4-3 */
+  .slot-343-gk   { top: 86%; left: 50%; }
+  .slot-343-lcb  { top: 72%; left: 30%; }
+  .slot-343-cb   { top: 70%; left: 50%; }
+  .slot-343-rcb  { top: 72%; left: 70%; }
+  .slot-343-lm   { top: 56%; left: 24%; }
+  .slot-343-lcm  { top: 54%; left: 40%; }
+  .slot-343-rcm  { top: 54%; left: 60%; }
+  .slot-343-rm   { top: 56%; left: 76%; }
+  .slot-343-lw   { top: 32%; left: 28%; }
+  .slot-343-st   { top: 28%; left: 50%; }
+  .slot-343-rw   { top: 32%; left: 72%; }
+
+  .pos-actions { padding: 4px 10px 10px 10px; display: flex; justify-content: center; }
+  .pos-actions a { text-decoration: none; }
+  </style>
+
+  <div class="pitch-wrapper">
+    <div class="pitch">
+      <div class="pitch-center-circle"></div>
+
+      {% for item in lineup %}
+        <div class="position-circle
+                    {% if item.player %}position-circle--filled{% else %}position-circle--empty{% endif %}
+                    {{ item.slot.css }}">
+          <div class="position-circle-code">{{ item.slot.label }}</div>
+          <div class="position-circle-name">
+            {% if item.player %}
+              {{ item.player.first_name }}<br>{{ item.player.last_name }}
+            {% else %}
+              —
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="pos-actions">
+    <a href="{{ url_for('teamformation_menu') }}">
+      <button class="btn" type="button">Zurück</button>
+    </a>
+  </div>
+
+</div>
+
+{% endblock %}
