@@ -1383,6 +1383,10 @@ def debug_thumbs():
     }
 
 
+@app.route("/_debug/openai")
+def debug_openai():
+    api_key = os.environ.get("OPENAI_API_KEY")
+    return {"OPENAI_API_KEY_present": bool(api_key), "key_prefix": (api_key[:7] if api_key else None)}
 
 
 @app.route("/")
