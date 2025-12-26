@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Gegner bestätigen</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <style>
+    body { margin:0; font-family: Arial, sans-serif; background:#0b1730; color:#fff; }
+    .phone{
+      min-height:100vh; padding:40px 20px 90px;
+      display:flex; flex-direction:column; align-items:center;
+    }
+    .content{
+      flex:1; display:flex; flex-direction:column; justify-content:center;
+      width:100%; max-width:420px; text-align:center;
+    }
+    h1{ font-size:26px; margin:0 0 20px; }
+    .card{
+      background:rgba(8,18,40,0.92);
+      border:1px solid rgba(60,255,154,0.4);
+      border-radius:12px;
+      padding:16px;
+      margin-bottom:20px;
+    }
+    .stat{ font-size:14px; margin:4px 0; opacity:0.9; }
+    .btnwrap{ display:flex; flex-direction:column; gap:12px; align-items:center; }
+    .btn{
+      width:280px;
+      padding:14px 20px;
+      border-radius:999px;
+      border:none;
+      font-size:18px;
+      font-weight:600;
+      cursor:pointer;
+      display:inline-block;
+      text-decoration:none;
+      text-align:center;
+    }
+    .primary{ background:#3cff9a; color:#071625; }
+    .secondary{ background:#243246; color:#fff; }
+  </style>
+</head>
+<body>
+<div class="phone">
+  <div class="content">
+    <h1>Meinst du dieses Team?</h1>
+
+    <div class="card">
+      <strong>{{ team.name }}</strong>
+      <div class="stat">Tabellenplatz: {{ team.rank }}</div>
+      <div class="stat">Tore: {{ team.goals_for }} : {{ team.goals_against }}</div>
+      <div class="stat">Spiele: {{ team.matches }}</div>
+      <div class="stat">Strafpunkte: {{ team['penalty_points'] }}</div>
+    </div>
+
+
+    <div class="stat" style="opacity:0.7;font-size:12px;margin-top:8px;">
+      Quelle: {{ team['source'] }}
+    </div>
+
+
+    <div class="btnwrap">
+      <form method="post" action="{{ url_for('formation_gameplan_opponent_apply') }}">
+        <input type="hidden" name="name" value="{{ team.name }}">
+        <input type="hidden" name="league" value="{{ team.league or '' }}">
+        <input type="hidden" name="rank" value="{{ team.rank }}">
+        <input type="hidden" name="goals_for" value="{{ team.goals_for }}">
+        <input type="hidden" name="goals_against" value="{{ team.goals_against }}">
+        <input type="hidden" name="matches" value="{{ team.matches }}">
+        <button class="btn primary" type="submit">Ja, dieses Team</button>
+      </form>
+
+
+      <a class="btn secondary" href="{{ url_for('formation_gameplan_opponent_search') }}">Nein, erneut suchen</a>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

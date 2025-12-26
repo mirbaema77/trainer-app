@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Gegner suchen</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <style>
+    body { margin:0; font-family: Arial, sans-serif; background:#0b1730; color:#fff; }
+    .phone{ min-height:100vh; padding:40px 20px 90px; display:flex; flex-direction:column; align-items:center; }
+    .content{ flex:1; display:flex; flex-direction:column; justify-content:center; width:100%; max-width:420px; }
+    h1{ font-size:26px; margin:0 0 12px; }
+    form{ display:flex; flex-direction:column; gap:12px; }
+    input{
+      padding:14px 16px; border-radius:12px; border:none; font-size:16px;
+      width:100%; box-sizing:border-box;
+    }
+    button{
+      padding:14px 20px; border-radius:999px; border:none;
+      background:#3cff9a; color:#071625; font-size:18px; font-weight:600;
+      width:100%; cursor:pointer;
+    }
+    .error{
+      background: rgba(255,80,80,0.15);
+      border: 1px solid rgba(255,80,80,0.35);
+      color:#ffd6d6;
+      padding:12px 14px;
+      border-radius:12px;
+      margin: 0 0 14px 0;
+      font-size:14px;
+      text-align:center;
+    }
+  </style>
+</head>
+<body>
+<div class="phone">
+  <div class="content">
+    <h1>Gegen wen spielen wir?</h1>
+
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('formation_gameplan_opponent_search') }}">
+      <input type="text" name="opponent_query" value="{{ q or '' }}" placeholder="z.B. FC Wetzikon" />
+      <button class="btn" type="submit">Suchen</button>
+    </form>
+
+
+  </div>
+</div>
+</body>
+</html>

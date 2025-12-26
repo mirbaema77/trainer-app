@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Noqe Chat</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 30px auto; }
+    .msg { padding: 10px 12px; border-radius: 10px; margin: 10px 0; white-space: pre-wrap; }
+    .user { background: #eef; }
+    .ai { background: #efe; }
+    textarea { width: 100%; height: 90px; padding: 10px; }
+    button { padding: 10px 16px; }
+    .row { display:flex; gap:10px; align-items:flex-end; }
+  </style>
+</head>
+<body>
+  <h2>Chat</h2>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="msg {{ 'user' if m.role == 'user' else 'ai' }}">
+        <b>{{ 'Du' if m.role == 'user' else 'Noqe AI' }}:</b><br>
+        {{ m.content }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if error %}
+    <p style="color:red">{{ error }}</p>
+  {% endif %}
+
+  <form method="post">
+    <div class="row">
+      <textarea name="q" placeholder="Schreib irgendwas..." required>{{ q or '' }}</textarea>
+      <button type="submit">Senden</button>
+    </div>
+  </form>
+
+  <form method="post" action="{{ url_for('chat_reset') }}">
+    <button type="submit">Chat löschen</button>
+  </form>
+</body>
+</html>

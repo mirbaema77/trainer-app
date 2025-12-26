@@ -60,20 +60,52 @@
             width: 100%;
         }
 
-        h1 {
-            margin: 0 0 28px 0;
+        .title-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 28px;
+        }
+
+        .title-row h1 {
+            margin: 0;
             font-size: 26px;
+        }
+
+        .info-trigger {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.95);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .info-trigger svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
         }
 
         form {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
             align-items: center;
+            width: 100%;
+        }
+
+        .option-wrap {
+            width: 280px;
         }
 
         button.option {
-            width: 280px;
+            width: 100%;
             padding: 14px 20px;
             border-radius: 999px;
             border: none;
@@ -88,40 +120,83 @@
             filter: brightness(1.05);
         }
 
-        /* ---------------------------------------------------
-           Bottom Navigation (EXACT copy from base.html)
-        --------------------------------------------------- */
-
-        .bottom-nav {
+        /* Modal */
+        .modal-overlay {
             position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            height: 56px;
-            padding-bottom: env(safe-area-inset-bottom, 0);
-            background-color: #102341;
-            display: flex;
-            justify-content: space-evenly;
-            align-items: center;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.25);
-            z-index: 1000;
-        }
-
-        .bottom-nav__button {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            display: none;
             align-items: center;
             justify-content: center;
-            text-decoration: none;
-            color: #ffffff;
-            font-size: 10px;
+            padding: 18px;
+            z-index: 2000;
         }
 
-        .bottom-nav__icon {
-            width: 22px;
-            height: 22px;
-            margin-bottom: 4px;
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            width: 100%;
+            max-width: 420px;
+            background: #102341;
+            border-radius: 18px;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .modal-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .modal-close {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.06);
+            color: white;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 14px 16px 16px;
+        }
+
+        .info-block {
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .info-block:last-child {
+            border-bottom: none;
+        }
+
+        .info-name {
+            font-size: 14px;
+            font-weight: 800;
+            margin: 0 0 6px 0;
+        }
+
+        .info-main {
+            font-size: 12px;
+            margin: 0 0 6px 0;
+        }
+
+        .info-sub {
+            font-size: 11px;
+            font-style: italic;
+            margin: 0;
+            opacity: 0.8;
         }
     </style>
 </head>
@@ -137,47 +212,90 @@
     </div>
 
     <div class="content">
-        <h1>Trainingsschwerpunkt</h1>
+        <div class="title-row">
+            <h1>Trainingsschwerpunkt</h1>
+            <button class="info-trigger" type="button" id="openInfo" aria-label="Trainingswirkung anzeigen">
+                <!-- Graduation cap / mortarboard icon -->
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3L1 9l11 6 9-4.9V17h2V9L12 3z"></path>
+                    <path d="M6 12.5V16c0 1.1 2.7 2.5 6 2.5s6-1.4 6-2.5v-3.5l-6 3.2-6-3.2z"></path>
+                </svg>
+            </button>
+        </div>
 
         <form method="post">
-            <button class="option" type="submit" name="focus" value="Abschluss">Abschluss</button>
-            <button class="option" type="submit" name="focus" value="Passspiel">Passspiel</button>
-            <button class="option" type="submit" name="focus" value="Pressing / Verteidigung">Pressing / Verteidigung</button>
-            <button class="option" type="submit" name="focus" value="Umschalten">Umschalten</button>
+            <div class="option-wrap">
+                <button class="option" type="submit" name="focus" value="Abschluss">Abschluss</button>
+            </div>
+
+            <div class="option-wrap">
+                <button class="option" type="submit" name="focus" value="Passspiel">Passspiel</button>
+            </div>
+
+            <div class="option-wrap">
+                <button class="option" type="submit" name="focus" value="Pressing / Verteidigung">Pressing / Verteidigung</button>
+            </div>
+
+            <div class="option-wrap">
+                <button class="option" type="submit" name="focus" value="Umschalten">Umschalten</button>
+            </div>
         </form>
     </div>
 </div>
 
-<nav class="bottom-nav">
-    <a href="{{ url_for('feedback') }}" class="bottom-nav__button">
-        <span class="bottom-nav__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
-                <path d="M8 9h8"></path>
-                <path d="M8 13h5"></path>
-            </svg>
-        </span>
-        <span>Rückmeldung</span>
-    </a>
+<div class="modal-overlay" id="infoModal">
+    <div class="modal">
+        <div class="modal-header">
+            <p class="modal-title">Trainingswirkung</p>
+            <button class="modal-close" id="closeInfo">✕</button>
+        </div>
 
-    <a href="{{ url_for('start') }}" class="bottom-nav__button">
-        <span class="bottom-nav__icon">
-            <svg viewBox="0 0 24 24">
-                <path d="M4 11.5L12 4l8 7.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-8.5z" fill="white"/>
-            </svg>
-        </span>
-        <span>Startseite</span>
-    </a>
+        <div class="modal-body">
+            <div class="info-block">
+                <p class="info-name">Abschluss</p>
+                <p class="info-main">Torchancen herausspielen und konsequent abschliessen.</p>
+                <p class="info-sub">→ Viele Wiederholungen, kurze Pausen.</p>
+            </div>
 
-    <a href="{{ url_for('mein_noqe') }}" class="bottom-nav__button">
-        <span class="bottom-nav__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="8" r="4"></circle>
-                <path d="M4 20c2-4 6-6 8-6s6 2 8 6"></path>
-            </svg>
-        </span>
-        <span>Mein Noqe</span>
-    </a>
-</nav>
+            <div class="info-block">
+                <p class="info-name">Passspiel</p>
+                <p class="info-main">Ball sicher zirkulieren lassen, Mitspieler finden und Spieltempo steuern.</p>
+                <p class="info-sub">→ Mehr Ballkontrolle, weniger Tempo.</p>
+            </div>
+
+            <div class="info-block">
+                <p class="info-name">Pressing / Verteidigung</p>
+                <p class="info-main">Gegner unter Druck setzen, Räume schliessen und den Ball zurückerobern.</p>
+                <p class="info-sub">→ Erfordert Laufbereitschaft &amp; Abstimmung.</p>
+            </div>
+
+            <div class="info-block">
+                <p class="info-name">Umschalten</p>
+                <p class="info-main">Nach Ballgewinn oder Ballverlust schnell reagieren und die Spielrichtung ändern.</p>
+                <p class="info-sub">→ Hohe Intensität, viele Richtungswechsel.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const openBtn = document.getElementById('openInfo');
+    const closeBtn = document.getElementById('closeInfo');
+    const modal = document.getElementById('infoModal');
+
+    openBtn.onclick = () => {
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    };
+
+    closeBtn.onclick = () => {
+        modal.classList.remove('open');
+        document.body.style.overflow = '';
+    };
+
+    modal.onclick = (e) => {
+        if (e.target === modal) closeBtn.onclick();
+    };
+</script>
 </body>
 </html>

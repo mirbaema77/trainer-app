@@ -60,20 +60,52 @@
             width: 100%;
         }
 
-        h1 {
-            margin: 0 0 28px 0;
+        .title-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 28px;
+        }
+
+        .title-row h1 {
+            margin: 0;
             font-size: 26px;
+        }
+
+        .info-trigger {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.95);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .info-trigger svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
         }
 
         form {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
             align-items: center;
+            width: 100%;
+        }
+
+        .option-wrap {
+            width: 280px;
         }
 
         button.option {
-            width: 280px;
+            width: 100%;
             padding: 14px 20px;
             border-radius: 999px;
             border: none;
@@ -86,6 +118,89 @@
 
         button.option:hover {
             filter: brightness(1.05);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            z-index: 2000;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            width: 100%;
+            max-width: 420px;
+            background: #102341;
+            border-radius: 18px;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .modal-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .modal-close {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.06);
+            color: white;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 14px 16px 16px;
+            text-align: left;
+        }
+
+        .info-block {
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .info-block:last-child {
+            border-bottom: none;
+        }
+
+        .info-name {
+            font-size: 14px;
+            font-weight: 800;
+            margin: 0 0 6px 0;
+        }
+
+        .info-main {
+            font-size: 12px;
+            margin: 0 0 6px 0;
+            color: rgba(255,255,255,0.88);
+            line-height: 1.35;
+        }
+
+        .info-sub {
+            font-size: 11px;
+            font-style: italic;
+            margin: 0;
+            opacity: 0.8;
+            line-height: 1.35;
         }
 
         /* ---------------------------------------------------
@@ -137,13 +252,58 @@
     </div>
 
     <div class="content">
-        <h1>Intensität</h1>
+        <div class="title-row">
+            <h1>Intensität</h1>
+            <button class="info-trigger" type="button" id="openInfo" aria-label="Infos zur Intensität anzeigen">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3L1 9l11 6 9-4.9V17h2V9L12 3z"></path>
+                    <path d="M6 12.5V16c0 1.1 2.7 2.5 6 2.5s6-1.4 6-2.5v-3.5l-6 3.2-6-3.2z"></path>
+                </svg>
+            </button>
+        </div>
 
         <form method="post">
-            <button class="option" type="submit" name="physical" value="Leicht">Leicht</button>
-            <button class="option" type="submit" name="physical" value="Mittel">Mittel</button>
-            <button class="option" type="submit" name="physical" value="Hoch">Hoch</button>
+            <div class="option-wrap">
+                <button class="option" type="submit" name="physical" value="Leicht">Leicht</button>
+            </div>
+
+            <div class="option-wrap">
+                <button class="option" type="submit" name="physical" value="Mittel">Mittel</button>
+            </div>
+
+            <div class="option-wrap">
+                <button class="option" type="submit" name="physical" value="Hoch">Hoch</button>
+            </div>
         </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="infoModal" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+    <div class="modal">
+        <div class="modal-header">
+            <p class="modal-title" id="infoTitle">Trainingswirkung</p>
+            <button class="modal-close" id="closeInfo" aria-label="Schließen">✕</button>
+        </div>
+
+        <div class="modal-body">
+            <div class="info-block">
+                <p class="info-name">Leicht</p>
+                <p class="info-main">Regeneration.</p>
+                <p class="info-sub">→ Sinnvoll nach dem Spiel oder bei Müdigkeit.</p>
+            </div>
+
+            <div class="info-block">
+                <p class="info-name">Mittel</p>
+                <p class="info-main">Normale Trainingswoche.</p>
+                <p class="info-sub">→ Ausgewogene Belastung.</p>
+            </div>
+
+            <div class="info-block">
+                <p class="info-name">Hoch</p>
+                <p class="info-main">Vorbereitung oder Fokus-Einheit.</p>
+                <p class="info-sub">→ Höhere Ermüdung einplanen.</p>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -178,5 +338,29 @@
         <span>Mein Noqe</span>
     </a>
 </nav>
+
+<script>
+    const openBtn = document.getElementById('openInfo');
+    const closeBtn = document.getElementById('closeInfo');
+    const modal = document.getElementById('infoModal');
+
+    openBtn.onclick = () => {
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    };
+
+    closeBtn.onclick = () => {
+        modal.classList.remove('open');
+        document.body.style.overflow = '';
+    };
+
+    modal.onclick = (e) => {
+        if (e.target === modal) closeBtn.onclick();
+    };
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('open')) closeBtn.onclick();
+    });
+</script>
 </body>
 </html>

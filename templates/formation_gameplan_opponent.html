@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Formation – Gegner</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1730">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Noqe">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+  <style>
+    body { margin:0; font-family: Arial, sans-serif; background-color:#0b1730; min-height:100vh; color:white; }
+
+    .phone{
+      width:100%;
+      min-height:100vh;
+      box-sizing:border-box;
+      padding: calc(40px + env(safe-area-inset-top, 0)) 20px calc(90px + env(safe-area-inset-bottom, 0));
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+    }
+
+    .content{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      text-align:center;
+      width:100%;
+    }
+
+    h1{ margin:0 0 28px 0; font-size:26px; }
+
+    form{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      align-items:center;
+    }
+
+    button.option{
+      width:280px;
+      padding:14px 20px;
+      border-radius:999px;
+      border:none;
+      background-color:#3cff9a;
+      color:#071625;
+      font-size:18px;
+      font-weight:600;
+      cursor:pointer;
+    }
+
+    button.option:hover{ filter:brightness(1.05); }
+  </style>
+</head>
+
+<body>
+<div class="phone">
+  <div class="content">
+    <h1>Gegner berücksichtigen?</h1>
+
+    <form method="post">
+      <button class="option" type="submit" name="consider_opponent" value="yes">Ja</button>
+      <button class="option" type="submit" name="consider_opponent" value="no">Nein</button>
+    </form>
+  </div>
+</div>
+</body>
+</html>

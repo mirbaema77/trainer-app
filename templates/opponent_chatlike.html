@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Gegen wen spielen wir?</title>
+</head>
+<body>
+  <h2>Gegen wen spielen wir?</h2>
+
+  <form method="post" action="{{ url_for('opponent_chatlike') }}">
+    <input
+      type="text"
+      name="q"
+      placeholder="z.B. FC Wetzikon 1"
+      value="{{ q or '' }}"
+      style="width: 320px;"
+      autofocus
+      required
+    >
+    <button type="submit">Suchen</button>
+  </form>
+
+  {% if error %}
+    <p style="color:red">{{ error }}</p>
+  {% endif %}
+</body>
+</html>

@@ -1,8 +1,15 @@
 from flask import Flask, render_template, request, redirect, url_for, session, send_file
 import os
 from email_utils import send_email
+from typing import Optional, Tuple, Dict, Any
+import json
+from openai import OpenAI
+
 
 from sqlalchemy import func, case
+
+import html
+import requests
 
 
 from datetime import datetime
@@ -243,7 +250,348 @@ def normalize_for_formation(code: str) -> str:
     return code
 
 
-def adjust_position_by_preferred_foot(position: str, preferred_foot: str | None) -> str:
+# --- NEW: use FVRZ club directory (find club -> open club matchcenter -> parse table row) ---
+from difflib import SequenceMatcher
+import re, html, requests
+
+FVRZ_CLUBS_URL = "https://www.fvrz.ch/desktopdefault.aspx/tabid-1184/"   # Vereine (Liste)
+FVRZ_CLUB_MC_URL = "https://www.fvrz.ch/desktopdefault.aspx/tabid-1186/v-{vid}/"  # Matchcenter pro Verein
+
+
+def _normalize_team_name(name: str) -> str:
+    n = (name or "").lower()
+    n = re.sub(r"(fc|sc|sv|erste|1\.?|mannschaft|team|club)", " ", n)
+    n = re.sub(r"[^a-z0-9äöü\s\-\.\/]", " ", n)
+    n = re.sub(r"\s+", " ", n).strip()
+    return n
+
+
+def _similar(a: str, b: str) -> float:
+    return SequenceMatcher(None, a, b).ratio()
+
+
+def _fetch_fvrz_club_vid(query: str) -> Optional[Tuple[int, str]]:
+    """Return (vid, club_name) from FVRZ club directory."""
+    qn = _normalize_team_name(query)
+    print("FVRZ qn:", qn)
+
+    if not qn:
+        return None
+
+    try:
+        r = requests.get(FVRZ_CLUBS_URL, timeout=12, headers={"User-Agent": "Mozilla/5.0"})
+        r.raise_for_status()
+    except Exception:
+        return None
+
+    raw = html.unescape(r.text)
+
+    # find club links like: .../tabid-1186/v-1525/  with visible text "FC Hinwil"
+    # we parse <a ... href=".../tabid-1186/v-####/" ...>CLUBNAME</a>
+    links = re.findall(
+        r'href="[^"]*/tabid-1186/v-(\d+)/[^"]*".*?>([^<]+)</a>',
+        raw,
+        flags=re.I | re.S
+    )
+    print("FVRZ club links found:", len(links))
+
+    best = None
+    best_score = 0.0
+    for vid_s, club_name in links:
+        club_name_clean = re.sub(r"\s+", " ", club_name).strip()
+        score = _similar(qn, _normalize_team_name(club_name_clean))
+        if score > best_score:
+            best_score = score
+            best = (int(vid_s), club_name_clean)
+
+    print("FVRZ best:", best, "score:", best_score)
+
+    return best if best and best_score >= 0.55 else None
+
+
+def fetch_opponent_candidate(query: str) -> Optional[Dict[str, Any]]:
+    """
+    Query -> find best matching club in FVRZ -> open club matchcenter page -> find best matching row:
+    returns: {name, rank, matches, goals_for, goals_against}
+    """
+    print("FETCH_OPPONENT_CANDIDATE query:", query)
+
+    club = _fetch_fvrz_club_vid(query)
+    if not club:
+        return None
+
+    vid, club_name = club
+    url = FVRZ_CLUB_MC_URL.format(vid=vid)
+
+    try:
+        r = requests.get(url, timeout=12, headers={"User-Agent": "Mozilla/5.0"})
+        print("FVRZ clubs status:", r.status_code)
+        print("FVRZ clubs url:", r.url)
+        print("FVRZ clubs head:", r.text[:500])
+        r.raise_for_status()
+    except Exception as e:
+        print("FVRZ clubs ERROR:", repr(e))
+        return None
+
+    text = html.unescape(r.text)
+    text = re.sub(r"<script.*?</script>", " ", text, flags=re.S | re.I)
+    text = re.sub(r"<style.*?</style>", " ", text, flags=re.S | re.I)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+
+    q_norm = _normalize_team_name(query)
+
+    # rows: rank. team matches W D L (optional (penalty)) gf:ga
+    rows = re.findall(
+        r"(\d+)\.\s*"
+        r"([A-Za-zÄÖÜäöü0-9 \-\.\/]+?)\s+"
+        r"(\d+)\s+"
+        r"\d+\s+\d+\s+\d+"
+        r"(?:\([^\)]*\))?\s*"
+        r"(\d+)\s*:\s*(\d+)",
+        text
+    )
+    if not rows:
+        return None
+
+    best = None
+    best_score = 0.0
+
+    # prefer row that looks like the club first team (contains club name and " 1"), otherwise best similarity
+    for rank, team, matches, gf, ga in rows:
+        team_clean = re.sub(r"\s+", " ", team).strip()
+        score = _similar(q_norm, _normalize_team_name(team_clean))
+
+        # bonus if row looks like "FC <club> 1" (erste mannschaft)
+        if _normalize_team_name(club_name) in _normalize_team_name(team_clean) and re.search(r"\b1\b", team_clean):
+            score += 0.12
+
+        if score > best_score:
+            best_score = score
+            best = {
+                "name": team_clean,
+                "rank": int(rank),
+                "matches": int(matches),
+                "goals_for": int(gf),
+                "goals_against": int(ga),
+            }
+
+    return best if best and best_score >= 0.55 else None
+
+
+OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions"
+
+def fetch_opponent_stats_with_web_search(team_query: str) -> dict | None:
+    api_key = os.environ.get("OPENAI_API_KEY")
+    print("OPENAI_API_KEY present:", bool(api_key))
+    if not api_key:
+        return None
+
+    team_query = (team_query or "").strip()
+    if not team_query:
+        return None
+
+    client = OpenAI(api_key=api_key)
+
+    prompt = (
+        "Liefere NUR JSON im folgenden Format:\n"
+        '{'
+        '"name": string, '
+        '"league": string, '
+        '"rank": integer, '
+        '"goals_for": integer, '
+        '"goals_against": integer, '
+        '"matches": integer, '
+        '"penalty_points": integer'
+        '}\n\n'
+        f"Team: {team_query}\n"
+        "Strafpunkte = Zahl in Klammern in der Tabelle (z.B. (-3)). Wenn keine Klammer da ist: 0.\n"
+        "Keine weiteren Wörter."
+    )
+
+    try:
+        resp = client.responses.create(
+            model="gpt-4o",
+            input=prompt,
+            tools=[{"type": "web_search"}],
+        )
+
+        text = (resp.output_text or "").strip()
+        print("OPENAI WEB_SEARCH RAW:", text)
+
+        m = re.search(r"\{.*\}", text, flags=re.S)
+        if not m:
+            return None
+
+        obj = json.loads(m.group(0))
+
+        team = {
+            "name": str(obj.get("name", team_query)).strip(),
+            "league": str(obj.get("league", "")).strip(),
+            "rank": int(obj["rank"]),
+            "goals_for": int(obj["goals_for"]),
+            "goals_against": int(obj["goals_against"]),
+            "matches": int(obj.get("matches", 1) or 1),
+            "penalty_points": int(obj.get("penalty_points", 0)),
+            "source": "matchcenter.fvrz.ch (via Web Search)"
+        }
+
+        return team
+
+    except Exception as e:
+        print("OPENAI WEB_SEARCH ERROR:", repr(e))
+        return None
+
+
+def fetch_opponent_stats_with_chatgpt(team_query: str) -> dict | None:
+    """
+    Uses ChatGPT API to return:
+    {name, rank, goals_for, goals_against, matches}
+    If not found / unclear -> returns None
+    """
+
+    api_key = os.environ.get("OPENAI_API_KEY")
+    print("OPENAI_API_KEY present:", bool(api_key))
+    if not api_key:
+        return None
+
+    team_query = (team_query or "").strip()
+    if not team_query:
+        return None
+
+    system_prompt = (
+        "Return ONLY valid JSON with this schema:\n"
+        "{"
+        "\"name\": string, "
+        "\"league\": string, "
+        "\"rank\": integer, "
+        "\"goals_for\": integer, "
+        "\"goals_against\": integer, "
+        "\"matches\": integer"
+        "}\n"
+        "Do NOT return an error object. If unsure, make your best estimate based on available knowledge."
+    )
+
+    user_prompt = (
+            "Team: " + team_query + "\n"
+                                    "Give rank, goals_for, goals_against, matches for the FIRST TEAM.\n"
+                                    "If possible include the league name in 'league'.\n"
+                                    "Return ONLY JSON."
+    )
+
+    payload = {
+        "model": "gpt-4o-mini",
+        "temperature": 0,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+    }
+
+    try:
+        r = requests.post(
+            OPENAI_CHAT_URL,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=20,
+        )
+
+        print("OPENAI STATUS:", r.status_code)
+        print("OPENAI RAW:", r.text[:2000])
+        print("TEAM QUERY:", team_query)
+
+        r.raise_for_status()
+        data = r.json()
+
+        content = data["choices"][0]["message"]["content"].strip()
+        print("OPENAI CONTENT:", content)
+
+        m = re.search(r"\{.*\}", content, flags=re.S)
+        if not m:
+            return None
+
+        obj = json.loads(m.group(0))
+
+        team = {
+            "name": str(obj.get("name", team_query)).strip(),
+            "league": str(obj.get("league", "")).strip(),
+            "rank": int(obj["rank"]),
+            "goals_for": int(obj["goals_for"]),
+            "goals_against": int(obj["goals_against"]),
+            "matches": int(obj.get("matches", 1) or 1),
+        }
+
+        return team
+
+    except Exception as e:
+        print("OPENAI ERROR:", repr(e))
+        return None
+
+
+def opponent_adjustment_from_stats(opponent: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Returns small tactical deltas based on opponent strength.
+    Uses ONLY:
+    - rank
+    - goals_for
+    - goals_against
+    - matches
+    """
+
+    if not opponent:
+        return {}
+
+    matches = max(opponent.get("matches", 1), 1)
+    gf_pg = opponent.get("goals_for", 0) / matches
+    ga_pg = opponent.get("goals_against", 0) / matches
+    rank = opponent.get("rank", 999)
+
+    adj = {
+        "press": 0.0,
+        "build_up": 0.0,
+        "width": 0.0,
+        "transition": 0.0,
+        "risk": 0.0,
+    }
+
+    # ------------------------
+    # ATTACK STRENGTH (goals for)
+    # ------------------------
+    if gf_pg >= 2.2:  # very attacking opponent
+        adj["risk"] -= 0.15
+        adj["transition"] += 0.10
+    elif gf_pg <= 1.0:  # weak attack
+        adj["press"] += 0.10
+        adj["build_up"] += 0.05
+
+    # ------------------------
+    # DEFENSIVE WEAKNESS (goals against)
+    # ------------------------
+    if ga_pg >= 2.0:  # concedes a lot
+        adj["press"] += 0.10
+        adj["risk"] += 0.10
+    elif ga_pg <= 1.0:  # strong defense
+        adj["risk"] -= 0.10
+        adj["build_up"] += 0.05
+
+    # ------------------------
+    # TABLE POSITION (overall strength)
+    # ------------------------
+    if rank <= 3:  # top team
+        adj["risk"] -= 0.10
+    elif rank >= 10:  # bottom team
+        adj["risk"] += 0.10
+
+    return adj
+
+
+
+
+
+def adjust_position_by_preferred_foot(position: str, preferred_foot: Optional[str]) -> str:
     if not position or not preferred_foot:
         return position
 
@@ -424,6 +772,47 @@ def normalize_email(email: str) -> str:
     return (email or "").strip().lower()
 
 
+def _opponent_adjustment_from_stats(opponent: dict) -> dict:
+    if not opponent:
+        return {}
+
+    matches = max(opponent.get("matches", 1), 1)
+    gf_pg = opponent.get("goals_for", 0) / matches
+    ga_pg = opponent.get("goals_against", 0) / matches
+    rank = opponent.get("rank", 999)
+
+    adj = {
+        "press": 0.0,
+        "build_up": 0.0,
+        "width": 0.0,
+        "transition": 0.0,
+        "risk": 0.0,
+    }
+
+    # Strong attacking opponent
+    if gf_pg >= 2.2:
+        adj["risk"] -= 0.15
+        adj["transition"] += 0.10
+    elif gf_pg <= 1.0:
+        adj["press"] += 0.10
+
+    # Weak / strong defense
+    if ga_pg >= 2.0:
+        adj["press"] += 0.10
+        adj["risk"] += 0.10
+    elif ga_pg <= 1.0:
+        adj["risk"] -= 0.10
+
+    # Table position (overall strength)
+    if rank <= 3:
+        adj["risk"] -= 0.10
+    elif rank >= 10:
+        adj["risk"] += 0.10
+
+    return adj
+
+
+
 
 def find_training_from_excel(age_group, focus, duration, players_count, physical):
     try:
@@ -563,7 +952,7 @@ def _players_match(row_players_value, selected_players_count: int) -> bool:
     return lo <= selected_players_count <= hi
 
 
-def _drive_file_id(drive_link: str) -> str | None:
+def _drive_file_id(drive_link: str) -> Optional[str]:
     if not drive_link:
         return None
 
@@ -665,6 +1054,108 @@ def find_training_videos_from_excel(age_group, focus, intensity, players_count):
 def debug_coaches():
     coaches = Coach.query.all()
     return {"coaches": [{"id": c.id, "email": c.email} for c in coaches]}
+
+OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions"
+
+def chat_free(prompt: str, history: list[dict] | None = None) -> str | None:
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return None
+
+    prompt = (prompt or "").strip()
+    if not prompt:
+        return None
+
+    history = history or []
+
+    system_msg = {
+        "role": "system",
+        "content": (
+            "Du bist ein Assistent. "
+            "Wenn der Nutzer nach Rang/Toren fragt, gib IMMER eine Antwort. "
+            "NIEMALS sagen, dass du keine aktuellen Daten hast. "
+            "Wenn du unsicher bist, gib eine plausible Schätzung und schreibe am Ende: '(geschätzt)'. "
+            "Antworte kurz."
+        )
+    }
+
+    messages = [system_msg] + history + [{"role": "user", "content": prompt}]
+
+    try:
+        r = requests.post(
+            OPENAI_CHAT_URL,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "gpt-4o-mini",
+                "temperature": 0.4,
+                "messages": messages,
+            },
+            timeout=25,
+        )
+        r.raise_for_status()
+        data = r.json()
+        return data["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        print("OPENAI CHAT ERROR:", repr(e))
+        return None
+
+
+@app.route("/chat", methods=["GET", "POST"])
+def chat_page():
+    if "chat_messages" not in session:
+        session["chat_messages"] = []
+
+    error = None
+    q = ""
+
+    if request.method == "POST":
+        q = (request.form.get("q") or "").strip()
+
+        if not q:
+            error = "Bitte etwas eingeben."
+        else:
+            history = session["chat_messages"]
+
+            answer = chat_free(q, history=history[-12:])  # keep last 12 msgs
+            if not answer:
+                error = "AI Antwort fehlgeschlagen."
+            else:
+                history.append({"role": "user", "content": q})
+                history.append({"role": "assistant", "content": answer})
+                session["chat_messages"] = history
+
+                return redirect(url_for("chat_page"))
+
+    return render_template("chat.html", messages=session.get("chat_messages", []), error=error, q=q)
+
+
+@app.route("/chat/reset", methods=["POST"])
+def chat_reset():
+    session["chat_messages"] = []
+    return redirect(url_for("chat_page"))
+
+
+
+@app.route("/opponent-chat", methods=["GET", "POST"])
+def opponent_chatlike():
+    if request.method == "POST":
+        q = (request.form.get("q") or "").strip()
+        if not q:
+            return render_template("opponent_chatlike.html", error="Bitte Teamname eingeben.", q=q)
+
+        # ONLY ChatGPT result (no scraping)
+        team = fetch_opponent_stats_with_chatgpt(q)
+
+        if not team:
+            return render_template("opponent_chatlike.html", error="Team nicht gefunden.", q=q)
+
+        return render_template("opponent_result.html", team=team)
+
+    return render_template("opponent_chatlike.html")
+
 
 
 
@@ -844,6 +1335,8 @@ def _max_weight_assignment(scores: list[list[float]]) -> list[int]:
         if p[j] != 0:
             assignment[p[j]-1] = j-1
     return assignment[:n]
+
+
 
 
 
@@ -1304,13 +1797,79 @@ def formation_gameplan_q4():
         return redirect(url_for("formation_gameplan_q5"))
     return render_template("formation_gameplan_q4.html")
 
-
 @app.route("/teamformation/spielidee/q5", methods=["GET", "POST"])
 def formation_gameplan_q5():
     if request.method == "POST":
         session["gp_q5"] = request.form.get("risk", "balanced")
-        return redirect(url_for("formation_gameplan_result"))
+        return redirect(url_for("formation_gameplan_opponent"))
     return render_template("formation_gameplan_q5.html")
+
+
+@app.route("/teamformation/spielidee/opponent", methods=["GET", "POST"])
+def formation_gameplan_opponent():
+    if request.method == "POST":
+        choice = request.form.get("consider_opponent", "no")
+        session["gp_consider_opponent"] = (choice == "yes")
+
+        if choice == "yes":
+            return redirect(url_for("formation_gameplan_opponent_search"))
+
+        return redirect(url_for("formation_gameplan_result"))
+
+    return render_template("formation_gameplan_opponent.html")
+
+
+@app.route("/teamformation/spielidee/opponent/apply", methods=["POST"])
+def formation_gameplan_opponent_apply():
+    session["gp_opponent_team"] = {
+        "name": request.form["name"],
+        "league": request.form.get("league", ""),
+        "rank": int(request.form["rank"]),
+        "goals_for": int(request.form["goals_for"]),
+        "goals_against": int(request.form["goals_against"]),
+        "matches": int(request.form.get("matches", 1)),
+    }
+
+    return redirect(url_for("formation_gameplan_result"))
+
+
+
+@app.route("/teamformation/spielidee/opponent/search", methods=["GET", "POST"])
+def formation_gameplan_opponent_search():
+    error = session.pop("gp_opponent_error", None)
+    q = session.get("gp_opponent_query", "")
+
+    if request.method == "POST":
+        q = (request.form.get("opponent_query") or "").strip()
+        session["gp_opponent_query"] = q
+        return redirect(url_for("formation_gameplan_opponent_confirm", q=q))
+
+    return render_template("formation_gameplan_opponent_search.html", error=error, q=q)
+
+
+@app.route("/teamformation/spielidee/opponent/confirm", methods=["GET"])
+def formation_gameplan_opponent_confirm():
+    q = (request.args.get("q") or session.get("gp_opponent_query") or "").strip()
+    if not q:
+        session["gp_opponent_error"] = "Bitte Teamname eingeben."
+        return redirect(url_for("formation_gameplan_opponent_search"))
+
+    session["gp_opponent_query"] = q
+
+    team = fetch_opponent_stats_with_web_search(q)
+
+    # fallback (old method) only if web_search fails
+    if team is None:
+        team = fetch_opponent_candidate(q)
+
+    print("OPPONENT QUERY:", q)
+    print("OPPONENT TEAM RESULT:", team)
+
+    if team is None:
+        session["gp_opponent_error"] = "Team nicht gefunden – bitte anders schreiben."
+        return redirect(url_for("formation_gameplan_opponent_search"))
+
+    return render_template("formation_gameplan_opponent_confirm.html", team=team)
 
 
 @app.route("/teamformation/spielidee/result", methods=["GET"])
@@ -1592,6 +2151,14 @@ def _score_formation(profile: dict, target: dict) -> float:
 def recommend_formation_from_gameplan(sess) -> dict:
     target = _build_gameplan_target_from_session(sess)
 
+    # ✅ NEW: opponent influence (ONLY rank, goals_for, goals_against, matches)
+    if sess.get("gp_consider_opponent"):
+        opponent = sess.get("gp_opponent_team")  # expects dict with rank/goals_for/goals_against/matches
+        adj = _opponent_adjustment_from_stats(opponent)
+
+        for k, delta in adj.items():
+            target[k] = min(1.0, max(0.0, target[k] + delta))
+
     scored = []
     for formation, profile in FORMATION_PROFILE.items():
         scored.append((formation, _score_formation(profile, target)))
@@ -1651,6 +2218,9 @@ def recommend_formation_from_gameplan(sess) -> dict:
         "target": target,
         "explanation": expl[:4],  # keep it short on mobile
     }
+
+
+
 
 
 def _slot_score_for_player(slot_code: str, proba_map: dict, formation: str) -> float:
